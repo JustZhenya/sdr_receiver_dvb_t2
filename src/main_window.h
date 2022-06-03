@@ -25,7 +25,9 @@
 #ifndef WIN32
 #include "rx_plutosdr.h"
 #endif
+#ifdef USE_HACKRF
 #include "rx_hackrf.h"
+#endif
 #include "plot.h"
 #include "DVB_T2/dvbt2_demodulator.h"
 
@@ -53,9 +55,10 @@ signals:
     void stop_device();
 
 private slots:
+#ifdef USE_SDRPLAY
     void open_sdrplay();
     void status_sdrplay(int _err);
-
+#endif
     void open_airspy();
     void status_airspy(int _err);
 #ifndef WIN32
@@ -63,9 +66,11 @@ private slots:
     void status_plutosdr(int _err);
 #endif
 
+#ifdef USE_HACKRF
     void open_hackrf();
     void status_hackrf(int _err);
     void finished_hackrf();
+#endif
 
     void update_buffered(int nbuffers, int totalbuffers);
 
@@ -98,11 +103,13 @@ private:
     id_device_t id_device;
     dvbt2_demodulator* dvbt2;
     QThread* thread = nullptr;
+    rx_airspy* ptr_airspy;
 #ifdef USE_SDRPLAY
     rx_sdrplay* ptr_sdrplay;
 #endif
-    rx_airspy* ptr_airspy;
+#ifdef USE_HACKRF
     rx_hackrf* ptr_hackrf;
+#endif
     int start_sdrplay();
     int start_airspy();
 #ifndef WIN32

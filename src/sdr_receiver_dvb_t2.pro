@@ -71,9 +71,10 @@ SOURCES += \
     main_window.cpp \
     plot.cpp \
     qcustomplot.cpp \
-    rx_airspy.cpp \
-    rx_sdrplay.cpp \
-    rx_hackrf.cpp
+    rx_airspy.cpp
+
+equals(hackrf,1): SOURCES += rx_hackrf.cpp
+equals(sdrplay,1): SOURCES += rx_sdrplay.cpp
 
 unix:{
 SOURCES += \
@@ -121,8 +122,10 @@ HEADERS += \
     main_window.h \
     plot.h \
     qcustomplot.h \
-    rx_airspy.h \
-    rx_hackrf.h
+    rx_airspy.h
+
+equals(hackrf,1): HEADERS += rx_hackrf.h
+equals(sdrplay,1): SOURCES += rx_sdrplay.h
 
 unix:{
 HEADERS += \
@@ -140,6 +143,10 @@ LIBS += -lfftw3f
 LIBS += -lusb-1.0
 LIBS += -lssh
 LIBS += -lhackrf
+equals(sdrplay,1): LIBS += -lmirsdrapi-rsp
+equals(sdrplay,1): QMAKE_CXXFLAGS += -DUSE_SDRPLAY
+equals(hackrf,1): LIBS += -lhackrf
+equals(hackrf,1): QMAKE_CXXFLAGS += -DUSE_HACKRF
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
