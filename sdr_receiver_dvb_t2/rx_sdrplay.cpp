@@ -43,13 +43,13 @@ static void stream_cb(short *xi, short *xq, sdrplay_api_StreamCbParamsT *params,
         sdrplay_api_DeviceParamsT* params;
         sdrplay_api_GetDeviceParams(*handle, &params);
 
-        if(params->rxChannelA->tunerParams.rfFreq.rfHz != last_freq)
+        if(params && params->rxChannelA->tunerParams.rfFreq.rfHz != last_freq)
         {
             g_rf_changed = 1;
             last_freq = params->rxChannelA->tunerParams.rfFreq.rfHz;
         }
 
-        if(params->rxChannelA->tunerParams.gain.gRdB != last_gain)
+        if(params && params->rxChannelA->tunerParams.gain.gRdB != last_gain)
         {
             g_gr_changed = 1;
             last_gain = params->rxChannelA->tunerParams.gain.gRdB;
@@ -294,11 +294,14 @@ void rx_sdrplay::start()
         }
     }
 
-    sdrplay_api_Uninit(selected_device.dev);
-    sdrplay_api_ReleaseDevice(&selected_device);
-    //sdrplay_api_Close();
+    err = sdrplay_api_Uninit(selected_device.dev);
+    if(err) emit status(err);
+
+    err = sdrplay_api_ReleaseDevice(&selected_device);
+    if(err) emit status(err);
+
     emit stop_demodulator();
-    if(thread->isRunning()) thread->wait(1000);
+    if(thread->isRunning()) thread->wait();
     delete [] i_buffer_a;
     delete [] q_buffer_a;
     delete [] i_buffer_b;
