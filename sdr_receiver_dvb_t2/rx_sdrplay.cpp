@@ -134,7 +134,7 @@ sdrplay_api_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
     rf_frequence = _rf_frequence;
     gain_db = _gain_db;
     if(gain_db < 0) {
-        gain_db = 78;
+        gain_db = 43;
         agc = true;
     }
     sample_rate = 9200000.0f; // max for 10bit (10000000.0f for 8bit)
@@ -142,9 +142,6 @@ sdrplay_api_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
     sdrplay_api_DeviceParamsT* params;
 
     err = sdrplay_api_GetDeviceParams(selected_device.dev, &params);
-    if(err) return err;
-
-    err = sdrplay_api_Init(selected_device.dev, &callbacks, &selected_device.dev);
     if(err) return err;
 
     params->rxChannelA->tunerParams.gain.gRdB = gain_db;
@@ -156,15 +153,10 @@ sdrplay_api_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
     params->rxChannelA->ctrlParams.dcOffset.IQenable = false;
     params->rxChannelA->ctrlParams.agc.enable = sdrplay_api_AGC_DISABLE;
 
+    err = sdrplay_api_Init(selected_device.dev, &callbacks, &selected_device.dev);
+    if(err) return err;
+
     len_out_device = 2048;
-    
-    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_Gr, sdrplay_api_Update_Ext1_None);
-    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_Frf, sdrplay_api_Update_Ext1_None);
-    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_BwType, sdrplay_api_Update_Ext1_None);
-    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_IfType, sdrplay_api_Update_Ext1_None);
-    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Dev_Fs, sdrplay_api_Update_Ext1_None);
-    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Ctrl_DCoffsetIQimbalance, sdrplay_api_Update_Ext1_None);
-    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Ctrl_Agc, sdrplay_api_Update_Ext1_None);
 
     max_len_out = len_out_device * max_blocks;
     i_buffer_a = new short[max_len_out];
