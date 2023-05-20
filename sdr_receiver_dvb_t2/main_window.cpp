@@ -13,7 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "main_window.h"
-#include "ui_main_window.h"
+#include "build/ui_main_window.h"
 
 //---------------------------------------------------------------------------------------------------------------------------------
 main_window::main_window(QWidget *parent)
