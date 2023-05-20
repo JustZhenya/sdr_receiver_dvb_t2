@@ -18,80 +18,119 @@
 #include <QWaitCondition>
 #include <QMutex>
 
-//----------------------------------------------------------------------------------------------------------------------------
+#include <deque>
+#include <algorithm>
+
+static std::deque<short> g_i_queue, g_q_queue;
+
+static int last_gain = 0;
+static double last_freq = 0.0;
+static int g_rf_changed = 0, g_gr_changed = 0;
+
+static std::mutex g_m;
+static std::condition_variable g_cv;
+
+static void stream_cb(short *xi, short *xq, sdrplay_api_StreamCbParamsT *params, unsigned int numSamples, unsigned int reset, void *cbContext)
+{
+    {
+        std::unique_lock lock(g_m);
+
+        g_i_queue.insert(g_i_queue.end(), xi, xi + numSamples);
+        g_q_queue.insert(g_q_queue.end(), xq, xq + numSamples);
+
+        HANDLE* handle = (HANDLE*) cbContext;
+
+        sdrplay_api_DeviceParamsT* params;
+        sdrplay_api_GetDeviceParams(*handle, &params);
+
+        if(params->rxChannelA->tunerParams.rfFreq.rfHz != last_freq)
+        {
+            g_rf_changed = 1;
+            last_freq = params->rxChannelA->tunerParams.rfFreq.rfHz;
+        }
+
+        if(params->rxChannelA->tunerParams.gain.gRdB != last_gain)
+        {
+            g_gr_changed = 1;
+            last_gain = params->rxChannelA->tunerParams.gain.gRdB;
+        }
+    }
+
+    g_cv.notify_one();
+}
+
+static void event_cb(sdrplay_api_EventT eventId, sdrplay_api_TunerSelectT tuner, sdrplay_api_EventParamsT *params, void *cbContext)
+{
+    // do nothing
+}
+
+sdrplay_api_CallbackFnsT callbacks = {
+    .StreamACbFn = stream_cb,
+    .StreamBCbFn = stream_cb,
+    .EventCbFn = event_cb
+};
+
+sdrplay_api_ErrT my_ReadPacket(short* i_ptr, short* q_ptr, int* gr_changed, int* rf_changed, int* fs_changed, int samples_wanted)
+{
+    std::unique_lock lock(g_m);
+    g_cv.wait(lock, [samples_wanted] { return g_i_queue.size() > samples_wanted && g_q_queue.size() > samples_wanted; });
+
+    std::copy(g_i_queue.begin(), g_i_queue.begin() + samples_wanted, i_ptr);
+    g_i_queue.erase(g_i_queue.begin(), g_i_queue.begin() + samples_wanted);
+
+    std::copy(g_q_queue.begin(), g_q_queue.begin() + samples_wanted, q_ptr);
+    g_q_queue.erase(g_q_queue.begin(), g_q_queue.begin() + samples_wanted);
+
+    *rf_changed = g_rf_changed;
+    g_rf_changed = 0;
+
+    *gr_changed = g_gr_changed;
+    g_gr_changed = 0;
+
+    return sdrplay_api_Success;
+}
+
 rx_sdrplay::rx_sdrplay(QObject *parent) : QObject(parent)
 {  
 
 }
-//----------------------------------------------------------------------------------------------------------------------------
+
 rx_sdrplay::~rx_sdrplay()
 {
+    
+}
 
-}
-//----------------------------------------------------------------------------------------------------------------------------
-string rx_sdrplay::error (int err)
+string rx_sdrplay::error(sdrplay_api_ErrT err)
 {
-    switch (err) {
-       case mir_sdr_Success:
-          return "Success";
-       case mir_sdr_Fail:
-          return "Fail";
-       case mir_sdr_InvalidParam:
-          return "Invalid parameter";
-       case mir_sdr_OutOfRange:
-          return "Out of range";
-       case mir_sdr_GainUpdateError:
-          return "Gain update error";
-       case mir_sdr_RfUpdateError:
-          return "Rf update error";
-       case mir_sdr_FsUpdateError:
-          return "Fs update error";
-       case mir_sdr_HwError:
-          return "Hardware error";
-       case mir_sdr_AliasingError:
-          return "Aliasing error";
-       case mir_sdr_AlreadyInitialised:
-          return "Already initialised";
-       case mir_sdr_NotInitialised:
-          return "Not initialised";
-       case mir_sdr_NotEnabled:
-          return "Not enabled";
-       case mir_sdr_HwVerError:
-          return "Hardware Version error";
-       case mir_sdr_OutOfMemError:
-          return "Out of memory error";
-       case mir_sdr_HwRemoved:
-          return "Hardware removed";
-       default:
-          return "Unknown error";
-    }
+    return (string) sdrplay_api_GetErrorString(err);
 }
-//----------------------------------------------------------------------------------------------------------------------------
-mir_sdr_ErrT rx_sdrplay::get(char* &_ser_no, unsigned char &_hw_ver)
+
+sdrplay_api_ErrT rx_sdrplay::get(char* &_ser_no, unsigned char &_hw_ver)
 {
 
+    sdrplay_api_Open();
 //    mir_sdr_DebugEnable(1);
 
-    mir_sdr_DeviceT devices[4];
+    sdrplay_api_DeviceT devices[4];
     unsigned int numDevs;
-    err = mir_sdr_GetDevices(&devices[0], &numDevs, 4);
+    err = sdrplay_api_GetDevices(&devices[0], &numDevs, 4);
 
     if(err != 0) return err;
 
     _ser_no = devices[0].SerNo;
     _hw_ver = devices[0].hwVer;
-    err = mir_sdr_SetDeviceIdx(0);
+    devices[0].tuner = sdrplay_api_Tuner_A;
+    err = sdrplay_api_SelectDevice(&devices[0]);
+    selected_device = devices[0];
+
+    sdrplay_api_UnlockDeviceApi();
+    sdrplay_api_DebugEnable(selected_device.dev, sdrplay_api_DbgLvl_Message);
 
     return err;
 }
-//----------------------------------------------------------------------------------------------------------------------------
-mir_sdr_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
+
+sdrplay_api_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
 {
-    mir_sdr_Uninit();
-    err = mir_sdr_DCoffsetIQimbalanceControl(0, 0);
-
-    if(err != 0) return err;
-
     rf_frequence = _rf_frequence;
     gain_db = _gain_db;
     if(gain_db < 0) {
@@ -99,19 +138,39 @@ mir_sdr_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
         agc = true;
     }
     sample_rate = 9200000.0f; // max for 10bit (10000000.0f for 8bit)
-    double sample_rate_mhz = static_cast<double>(sample_rate) / 1.0e+6;
-    double rf_chanel_mhz = static_cast<double>(rf_frequence) / 1.0e+6;
-    err = mir_sdr_Init(gain_db, sample_rate_mhz, rf_chanel_mhz,
-                                 mir_sdr_BW_8_000, mir_sdr_IF_Zero, &len_out_device);
 
-    if(err != 0) return err;
+    sdrplay_api_DeviceParamsT* params;
+
+    err = sdrplay_api_GetDeviceParams(selected_device.dev, &params);
+    if(err) return err;
+
+    err = sdrplay_api_Init(selected_device.dev, &callbacks, &selected_device.dev);
+    if(err) return err;
+
+    params->rxChannelA->tunerParams.gain.gRdB = gain_db;
+    params->rxChannelA->tunerParams.rfFreq.rfHz = static_cast<double>(rf_frequence);
+    params->rxChannelA->tunerParams.bwType = sdrplay_api_BW_8_000;
+    params->rxChannelA->tunerParams.ifType = sdrplay_api_IF_Zero;
+    params->devParams->fsFreq.fsHz = sample_rate;
+    params->rxChannelA->ctrlParams.dcOffset.DCenable = false;
+    params->rxChannelA->ctrlParams.dcOffset.IQenable = false;
+    params->rxChannelA->ctrlParams.agc.enable = sdrplay_api_AGC_DISABLE;
+
+    len_out_device = 2048;
+    
+    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_Gr, sdrplay_api_Update_Ext1_None);
+    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_Frf, sdrplay_api_Update_Ext1_None);
+    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_BwType, sdrplay_api_Update_Ext1_None);
+    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_IfType, sdrplay_api_Update_Ext1_None);
+    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Dev_Fs, sdrplay_api_Update_Ext1_None);
+    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Ctrl_DCoffsetIQimbalance, sdrplay_api_Update_Ext1_None);
+    sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Ctrl_Agc, sdrplay_api_Update_Ext1_None);
 
     max_len_out = len_out_device * max_blocks;
-    unsigned int len_buffer = static_cast<unsigned int>(max_len_out);
-    i_buffer_a = new short[len_buffer];
-    q_buffer_a = new short[len_buffer];
-    i_buffer_b = new short[len_buffer];
-    q_buffer_b = new short[len_buffer];
+    i_buffer_a = new short[max_len_out];
+    q_buffer_a = new short[max_len_out];
+    i_buffer_b = new short[max_len_out];
+    q_buffer_b = new short[max_len_out];
 
     mutex_out = new QMutex;
     signal_out = new QWaitCondition;
@@ -128,12 +187,11 @@ mir_sdr_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
 
     return err;
 }
-//----------------------------------------------------------------------------------------------------------------------------
+
 void rx_sdrplay::start()
 {
     short* ptr_i_bubber = i_buffer_a;
     short* ptr_q_buffer = q_buffer_a;
-    unsigned int first_sample_num;
     int gr_changed = 0;
     int rf_changed = 0;
     int fs_changed = 0;
@@ -146,7 +204,7 @@ void rx_sdrplay::start()
     bool change_gain = false;
     bool gain_changed = true;    
 
-    int  blocks = 1;
+    int blocks = 1;
     const int norm_blocks = 500;
     const int decrease_blocks = 100;
     int len_buffer = 0;
@@ -155,8 +213,7 @@ void rx_sdrplay::start()
     while(done) {
         // get samples
         for(int n = 0; n < blocks; ++n) {
-            err = mir_sdr_ReadPacket(ptr_i_bubber, ptr_q_buffer, &first_sample_num,
-                                               &gr_changed, &rf_changed, &fs_changed);
+            err = my_ReadPacket(ptr_i_bubber, ptr_q_buffer, &gr_changed, &rf_changed, &fs_changed, len_out_device);
             if(err != 0) emit status(err);
             if(rf_changed) {
                 rf_changed = 0;
@@ -175,23 +232,32 @@ void rx_sdrplay::start()
 
         if(mutex_out->try_lock()) {
 
-            frame->get_signal_estimate(change_frequency, frequency_offset,
-                                       change_gain, gain_offset);
+            frame->get_signal_estimate(change_frequency, frequency_offset, change_gain, gain_offset);
 
             // coarse frequency setting
             if(change_frequency) {
                 float correct = -frequency_offset / static_cast<float>(rf_frequence);
                 frame->correct_resample(correct);
                 rf_frequence += static_cast<double>(frequency_offset);
-                err = mir_sdr_SetRf(rf_frequence, 1, 0);
-                if(err != 0) emit status(err);
+
+                sdrplay_api_DeviceParamsT* params;
+                sdrplay_api_GetDeviceParams(selected_device.dev, &params);
+                params->rxChannelA->tunerParams.rfFreq.rfHz = rf_frequence;
+                err = sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_Frf, sdrplay_api_Update_Ext1_None);
+                if(err) emit status(err);
+
                 frequency_changed = false;
             }
             // AGC
             if(agc && change_gain) {
                 gain_db -= gain_offset;
-                err = mir_sdr_SetGr(gain_db, 1, 0);
-                if(err != 0) emit status(err);
+
+                sdrplay_api_DeviceParamsT* params;
+                sdrplay_api_GetDeviceParams(selected_device.dev, &params);
+                params->rxChannelA->tunerParams.gain.gRdB = gain_db;
+                err = sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_Gr, sdrplay_api_Update_Ext1_None);
+                if(err) emit status(err);
+
                 gain_changed = false;
             }
             if(swap_buffer) {
@@ -210,8 +276,7 @@ void rx_sdrplay::start()
             }
             len_buffer = 0;
             if(blocks > norm_blocks) blocks -= decrease_blocks;
-        }
-        else {
+        } else {
             blocks += 1;
             int remain = max_len_out - len_buffer;
             int need = len_out_device * blocks;
@@ -221,8 +286,7 @@ void rx_sdrplay::start()
                 if(swap_buffer) {
                     ptr_i_bubber = i_buffer_a;
                     ptr_q_buffer = q_buffer_a;
-                }
-                else {
+                } else {
                     ptr_i_bubber = i_buffer_b;
                     ptr_q_buffer = q_buffer_b;
                 }
@@ -230,8 +294,9 @@ void rx_sdrplay::start()
         }
     }
 
-    mir_sdr_Uninit();
-    mir_sdr_ReleaseDeviceIdx();
+    sdrplay_api_Uninit(selected_device.dev);
+    sdrplay_api_ReleaseDevice(&selected_device);
+    //sdrplay_api_Close();
     emit stop_demodulator();
     if(thread->isRunning()) thread->wait(1000);
     delete [] i_buffer_a;
@@ -240,9 +305,8 @@ void rx_sdrplay::start()
     delete [] q_buffer_b;
     emit finished();
 }
-//----------------------------------------------------------------------------------------------------------------------------
+
 void rx_sdrplay::stop()
 {
     done = false;
 }
-//----------------------------------------------------------------------------------------------------------------------------

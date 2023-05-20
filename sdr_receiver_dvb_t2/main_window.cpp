@@ -103,7 +103,7 @@ void main_window::open_sdrplay()
     ptr_sdrplay = new rx_sdrplay;
     err = ptr_sdrplay->get(ser_no, hw_ver);
     ui->text_log->insertPlainText("Get SdrPlay:"  " " +
-                                  QString::fromStdString(ptr_sdrplay->error(err)) + "\n");
+                                  QString::fromStdString(ptr_sdrplay->error((sdrplay_api_ErrT)err)) + "\n");
     if(err !=0) return;
 
     ui->label_name->setText("Name : SdrPlay");
@@ -125,7 +125,7 @@ int main_window::start_sdrplay()
     if(ui->check_box_agc->isChecked()) gain_db = -1;
     err = ptr_sdrplay->init(rf_fraquency, gain_db);
     ui->text_log->insertPlainText("Init SdrPlay:"  " "  +
-                                  QString::fromStdString(ptr_sdrplay->error(err)) + "\n");
+                                  QString::fromStdString(ptr_sdrplay->error((sdrplay_api_ErrT)err)) + "\n");
     if(err !=0) return err;
 
     thread = new QThread;
@@ -146,7 +146,7 @@ int main_window::start_sdrplay()
 void main_window::status_sdrplay(int _err)
 {
     ui->text_log->insertPlainText("Status SdrPlay:"  " "  +
-                                  QString::fromStdString(ptr_sdrplay->error(_err)) + "\n");
+                                  QString::fromStdString(ptr_sdrplay->error((sdrplay_api_ErrT)_err)) + "\n");
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::open_airspy()

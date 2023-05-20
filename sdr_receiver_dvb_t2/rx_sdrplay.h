@@ -19,7 +19,7 @@
 #include <QTime>
 #include <QApplication>
 #include <string>
-#include <mirsdrapi-rsp.h>
+#include <sdrplay_api.h>
 
 #include "DVB_T2/dvbt2_frame.h"
 
@@ -32,9 +32,9 @@ public:
     explicit rx_sdrplay(QObject* parent = nullptr);
     ~rx_sdrplay();
 
-    string error (int err);
-    mir_sdr_ErrT get(char *&_ser_no, unsigned char &_hw_ver);
-    mir_sdr_ErrT init(double _rf_frequence, int _gain_db);
+    string error(sdrplay_api_ErrT err);
+    sdrplay_api_ErrT get(char *&_ser_no, unsigned char &_hw_ver);
+    sdrplay_api_ErrT init(double _rf_frequence, int _gain_db);
     dvbt2_frame* frame;
 
 signals:
@@ -53,7 +53,7 @@ private:
     QThread* thread;
     QWaitCondition* signal_out;
     QMutex* mutex_out;
-    mir_sdr_ErrT err;
+    sdrplay_api_ErrT err;
     int gain_db;
     double rf_frequence;
     float sample_rate;
@@ -67,6 +67,8 @@ private:
     bool swap_buffer = true;
     bool agc = false;
     bool done = true;
+
+    sdrplay_api_DeviceT selected_device;
 };
 
 #endif // RX_SDRPLAY_H

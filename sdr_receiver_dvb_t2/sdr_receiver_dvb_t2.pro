@@ -113,7 +113,7 @@ FORMS += \
     main_window.ui
 
 unix|win32: LIBS += -lfftw3f
-unix|win32: LIBS += -lmirsdrapi-rsp
+unix|win32: LIBS += -lsdrplay_api
 unix|win32: LIBS += -lusb-1.0
 
 # Default rules for deployment.
