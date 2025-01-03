@@ -37,7 +37,9 @@ bb_de_header::bb_de_header(QWaitCondition *_signal_in, QMutex *_mutex_in, QObjec
     buffer_out = new char[len];
 
     stream = new QDataStream;
+    #if 0
     stream->setVersion(QDataStream::Qt_5_15);
+    #endif
 
     socket = new QUdpSocket(this);
 }

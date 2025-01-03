@@ -33,6 +33,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 unix:{
 QMAKE_CXXFLAGS += -Ofast
+QMAKE_CXXFLAGS += -std=c++1z
 # QMAKE_CXXFLAGS += -march=native
 QMAKE_CXXFLAGS += -ffast-math
 QMAKE_CXXFLAGS += -mavx2

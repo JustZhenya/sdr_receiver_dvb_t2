@@ -57,7 +57,9 @@ main_window::main_window(QWidget *parent)
     button_group_p2_symbol->addButton(ui->radio_button_l1presignaling, 0);
     button_group_p2_symbol->addButton(ui->radio_button_l1postsignaling, 1);
     button_group_p2_symbol->addButton(ui->radio_button_data, 2);
-    connect(button_group_p2_symbol, &QButtonGroup::idClicked, this, &main_window::set_show_p2_symbol);
+    connect(button_group_p2_symbol, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked),
+            this, &main_window::set_show_p2_symbol);
+//    connect(button_group_p2_symbol, &QButtonGroup::idClicked, this, &main_window::set_show_p2_symbol);
 }
 //------------------------------------------------------------------------------------------------
 main_window::~main_window()
