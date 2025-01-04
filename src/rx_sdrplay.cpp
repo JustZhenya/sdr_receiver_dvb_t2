@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2020 Oleg Malyutin.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -12,6 +12,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+#ifdef USE_SDRPLAY
+
 #include "rx_sdrplay.h"
 
 #include <QThread>
@@ -295,3 +297,4 @@ void rx_sdrplay::stop()
     done = false;
 }
 //-------------------------------------------------------------------------------------------
+#endif //USE_SDRPLAY

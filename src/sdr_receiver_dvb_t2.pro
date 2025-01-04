@@ -72,7 +72,8 @@ SOURCES += \
     plot.cpp \
     qcustomplot.cpp \
     rx_airspy.cpp \
-    rx_sdrplay.cpp
+    rx_sdrplay.cpp \
+    rx_hackrf.cpp
 
 unix:{
 SOURCES += \
@@ -120,7 +121,8 @@ HEADERS += \
     main_window.h \
     plot.h \
     qcustomplot.h \
-    rx_airspy.h
+    rx_airspy.h \
+    rx_hackrf.h
 
 unix:{
 HEADERS += \
@@ -134,9 +136,10 @@ FORMS += \
 
 unix:{
 LIBS += -lfftw3f
-LIBS += -lmirsdrapi-rsp
+#LIBS += -lmirsdrapi-rsp
 LIBS += -lusb-1.0
 LIBS += -lssh
+LIBS += -lhackrf
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -170,7 +173,4 @@ unix:{
 RESOURCES += \
    libplutosdr/pluto_kernel_module.qrc
 }
-
-
-
 
