@@ -157,7 +157,7 @@ int main_window::start_sdrplay()
     double rf_fraquency;
     int gain_db;
     int err;
-    rf_fraquency = ui->line_edit_rf->text().toDouble();
+    rf_fraquency = ui->spinBoxRF->text().toDouble();
     gain_db = ui->line_edit_gain->text().toInt();
     if(ui->check_box_agc->isChecked()) gain_db = -1;
     err = ptr_sdrplay->init(rf_fraquency, gain_db);
@@ -213,7 +213,7 @@ int main_window::start_airspy()
     uint32_t rf_fraquency_hz;
     int gain;
     int err;
-    rf_fraquency_hz = static_cast<uint32_t>(ui->line_edit_rf->text().toULong());
+    rf_fraquency_hz = static_cast<uint32_t>(ui->spinBoxRF->text().toULong());
     gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
     if(ui->check_box_agc->isChecked()) gain = -1;
     err = ptr_airspy->init(rf_fraquency_hz, gain);
@@ -270,7 +270,7 @@ int main_window::start_plutosdr()
    uint64_t rf_fraquency_hz;
    int gain;
    int err;
-   rf_fraquency_hz = static_cast<uint64_t>(ui->line_edit_rf->text().toULong());
+   rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
    gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
    if(ui->check_box_agc->isChecked()) gain = -1;
    err = ptr_plutosdr->init(rf_fraquency_hz, gain);
@@ -332,7 +332,7 @@ int main_window::start_hackrf()
     uint64_t rf_fraquency_hz;
     int gain;
     int err;
-    rf_fraquency_hz = static_cast<uint64_t>(ui->line_edit_rf->text().toULong());
+    rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
     gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
     if(ui->check_box_agc->isChecked()) gain = -1;
     err = ptr_hackrf->init(rf_fraquency_hz, gain);
@@ -399,7 +399,7 @@ int main_window::start_miri()
     uint64_t rf_fraquency_hz;
     int gain;
     int err;
-    rf_fraquency_hz = static_cast<uint64_t>(ui->line_edit_rf->text().toULong());
+    rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
     gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
     if(ui->check_box_agc->isChecked()) gain = -1;
     err = ptr_miri->init(rf_fraquency_hz, gain);
@@ -509,7 +509,7 @@ void main_window::on_push_button_start_clicked()
     for(int i = 1; i < ui->tab_widget->count(); ++i) ui->tab_widget->setTabEnabled(i, true);
     connect_info();
     ui->push_button_start->setEnabled(false);
-    ui->line_edit_rf->setEnabled(false);
+    ui->spinBoxRF->setEnabled(false);
     ui->line_edit_gain->setEnabled(false);
     ui->check_box_agc->setEnabled(false);
     ui->push_button_stop->setEnabled(true);
@@ -559,7 +559,7 @@ void main_window::on_push_button_stop_clicked()
     ui->label_info_rf->setText("radio frequency (Hz) : ");
     ui->label_info_gain->setText("gain reducton (dB) : ");
     ui->menu_open->setEnabled(true);
-    ui->line_edit_rf->setEnabled(true);
+    ui->spinBoxRF->setEnabled(true);
     ui->line_edit_gain->setEnabled(true);
     ui->check_box_agc->setEnabled(true);
 }
