@@ -28,6 +28,9 @@
 #ifdef USE_HACKRF
 #include "rx_hackrf.h"
 #endif
+#ifdef USE_MIRI
+#include "rx_miri.h"
+#endif
 #include "plot.h"
 #include "DVB_T2/dvbt2_demodulator.h"
 
@@ -71,6 +74,11 @@ private slots:
     void status_hackrf(int _err);
     void finished_hackrf();
 #endif
+#ifdef USE_MIRI
+    void open_miri();
+    void status_miri(int _err);
+    void finished_miri();
+#endif
 
     void update_buffered(int nbuffers, int totalbuffers);
 
@@ -110,6 +118,10 @@ private:
 #ifdef USE_HACKRF
     rx_hackrf* ptr_hackrf;
 #endif
+#ifdef USE_MIRI
+    rx_miri* ptr_miri;
+#endif
+    int start_miri();
     int start_sdrplay();
     int start_airspy();
 #ifndef WIN32

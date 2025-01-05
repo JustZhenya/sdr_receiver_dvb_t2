@@ -19,6 +19,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
 CONFIG += thread
+CONFIG += staticlib
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -75,6 +76,7 @@ SOURCES += \
 
 equals(hackrf,1): SOURCES += rx_hackrf.cpp
 equals(sdrplay,1): SOURCES += rx_sdrplay.cpp
+equals(miri,1): SOURCES += rx_miri.cpp
 
 unix:{
 SOURCES += \
@@ -126,6 +128,8 @@ HEADERS += \
 
 equals(hackrf,1): HEADERS += rx_hackrf.h
 equals(sdrplay,1): SOURCES += rx_sdrplay.h
+!isEmpty(MIRI_INCLUDE_DIR): QMAKE_CXXFLAGS += -I$${MIRI_INCLUDE_DIR}
+equals(miri,1): HEADERS += rx_miri.h
 
 unix:{
 HEADERS += \
@@ -147,6 +151,9 @@ equals(sdrplay,1): LIBS += -lmirsdrapi-rsp
 equals(sdrplay,1): QMAKE_CXXFLAGS += -DUSE_SDRPLAY
 equals(hackrf,1): LIBS += -lhackrf
 equals(hackrf,1): QMAKE_CXXFLAGS += -DUSE_HACKRF
+!isEmpty(MIRI_LIB_DIR): LIBS += -L$${MIRI_LIB_DIR}
+equals(miri,1): LIBS += -lmirisdr
+equals(miri,1): QMAKE_CXXFLAGS += -DUSE_MIRI
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

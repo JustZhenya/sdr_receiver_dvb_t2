@@ -54,6 +54,12 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
         level_max = 0.05f;
         level_min = 0.02f;
         break;
+    case id_miri:
+        convert_input = 2;
+        short_to_float = 1.0f / (1 << 15);
+        level_max = 0.04f;
+        level_min = 0.02f;
+        break;
     }
     // max parameters
     unsigned int max_len_symbol = FFT_32K + FFT_32K / 4 + P1_LEN;

@@ -38,6 +38,7 @@ enum id_device_t{
     id_airspy,
     id_plutosdr,
     id_hackrf,
+    id_miri,
 };
 
 struct signal_estimate{
