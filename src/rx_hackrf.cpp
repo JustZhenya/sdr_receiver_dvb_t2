@@ -144,6 +144,7 @@ int rx_hackrf::init(double _rf_frequency, int _gain_db)
 
     demodulator = new dvbt2_demodulator(id_hackrf, sample_rate);
     thread = new QThread;
+    thread->setObjectName("demod");
     demodulator->moveToThread(thread);
     connect(this, &rx_hackrf::execute, demodulator, &dvbt2_demodulator::execute);
     connect(this, &rx_hackrf::stop_demodulator, demodulator, &dvbt2_demodulator::stop);

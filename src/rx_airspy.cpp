@@ -112,6 +112,7 @@ int rx_airspy::init(uint32_t _rf_frequence_hz, int _gain)
 
     demodulator = new dvbt2_demodulator(id_airspy, sample_rate);
     thread = new QThread;
+    thread->setObjectName("demod");
     demodulator->moveToThread(thread);
     connect(this, &rx_airspy::execute, demodulator, &dvbt2_demodulator::execute);
     connect(this, &rx_airspy::stop_demodulator, demodulator, &dvbt2_demodulator::stop);

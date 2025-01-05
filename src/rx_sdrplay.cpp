@@ -119,6 +119,7 @@ mir_sdr_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
 
     demodulator = new dvbt2_demodulator(id_sdrplay, sample_rate);
     thread = new QThread;
+    thread->setObjectName("demod");
     demodulator->moveToThread(thread);
     connect(this, &rx_sdrplay::execute, demodulator, &dvbt2_demodulator::execute);
     connect(this, &rx_sdrplay::stop_demodulator, demodulator, &dvbt2_demodulator::stop);

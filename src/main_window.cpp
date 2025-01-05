@@ -166,6 +166,7 @@ int main_window::start_sdrplay()
     if(err !=0) return err;
 
     thread = new QThread;
+    thread->setObjectName("rx_sdrplay");
     ptr_sdrplay->moveToThread(thread);
     connect(thread, SIGNAL(started()), ptr_sdrplay, SLOT(start()));
     connect(this,SIGNAL(stop_device()),ptr_sdrplay,SLOT(stop()),Qt::DirectConnection);
@@ -222,6 +223,7 @@ int main_window::start_airspy()
     if(err !=0) return err;
 
     thread = new QThread;
+    thread->setObjectName("rx_airspy");
     ptr_airspy->moveToThread(thread);
     connect(thread, SIGNAL(started()), ptr_airspy, SLOT(start()));
     connect(this,SIGNAL(stop_device()),ptr_airspy,SLOT(stop()),Qt::DirectConnection);
@@ -279,6 +281,7 @@ int main_window::start_plutosdr()
    if(err !=0) return err;
 
    thread = new QThread;
+   thread->setObjectName("rx_plutosdr");
    ptr_plutosdr->moveToThread(thread);
    connect(thread, SIGNAL(started()), ptr_plutosdr, SLOT(start()));
    connect(this,SIGNAL(stop_device()),ptr_plutosdr,SLOT(stop()),Qt::DirectConnection);
@@ -341,6 +344,7 @@ int main_window::start_hackrf()
     if(err !=0) return err;
 
     thread = new QThread;
+    thread->setObjectName("rx_hackrf");
     ptr_hackrf->moveToThread(thread);
     connect(thread, SIGNAL(started()), ptr_hackrf, SLOT(start()));
     connect(this,SIGNAL(stop_device()),ptr_hackrf,SLOT(stop()),Qt::DirectConnection);
@@ -408,6 +412,7 @@ int main_window::start_miri()
     if(err !=0) return err;
 
     thread = new QThread;
+    thread->setObjectName("rx_miri");
     ptr_miri->moveToThread(thread);
     connect(thread, SIGNAL(started()), ptr_miri, SLOT(start()));
     connect(this,SIGNAL(stop_device()),ptr_miri,SLOT(stop()),Qt::DirectConnection);

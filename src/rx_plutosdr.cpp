@@ -129,6 +129,7 @@ int rx_plutosdr::init(uint64_t _rf_frequence_hz, int _gain)
 
     demodulator = new dvbt2_demodulator(id_plutosdr, static_cast<float>(sample_rate_hz));
     thread = new QThread;
+    thread->setObjectName("demod");
     demodulator->moveToThread(thread);
     connect(this, &rx_plutosdr::execute, demodulator, &dvbt2_demodulator::execute);
     connect(this, &rx_plutosdr::stop_demodulator, demodulator, &dvbt2_demodulator::stop);
