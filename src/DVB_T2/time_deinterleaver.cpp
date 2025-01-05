@@ -44,19 +44,19 @@ void time_deinterleaver::start(dvbt2_parameters _dvbt2, l1_presignalling _l1_pre
     l1_post = _l1_post;
     p2_start_idx_cell = L1_PRE_CELL + l1_pre.l1_post_size;
     num_plp = l1_post.num_plp;
-    fec_len_bits = new int[num_plp];
-    bits_per_cell = new int[num_plp];
-    n_ti = new int[num_plp];
-    fec_blocks_per_time_interleving = new int* [num_plp];
-    p_i = new int[num_plp];
-    frame_interval = new int[num_plp];
-    first_frame_idx = new int[num_plp];
-    cells_per_fec_block = new int[num_plp];
-    slice_end = new int[num_plp];
-    num_rows = new int[num_plp];
-    num_cols = new int* [num_plp];
-    permutations = new int* [num_plp];
-    last_frame_idx = new int[num_plp];
+    fec_len_bits.resize(num_plp);
+    bits_per_cell.resize(num_plp);
+    n_ti.resize(num_plp);
+    fec_blocks_per_time_interleving.resize(num_plp);
+    p_i.resize(num_plp);
+    frame_interval.resize(num_plp);
+    first_frame_idx.resize(num_plp);
+    cells_per_fec_block.resize(num_plp);
+    slice_end.resize(num_plp);
+    num_rows.resize(num_plp);
+    num_cols.resize(num_plp);
+    permutations.resize(num_plp);
+    last_frame_idx.resize(num_plp);
     int len_max = 0;
     for(int i = 0; i < num_plp; ++i){
         switch (static_cast<dvbt2_fectype_t>(l1_post.plp[i].plp_fec_type)) {
@@ -127,11 +127,11 @@ void time_deinterleaver::start(dvbt2_parameters _dvbt2, l1_presignalling _l1_pre
         default:
             break;
         }
-        fec_blocks_per_time_interleving[i] = new int [n_ti[i]];
-        num_cols[i] = new int [n_ti[i]];
+        fec_blocks_per_time_interleving[i].resize(n_ti[i]);
+        num_cols[i].resize(n_ti[i]);
         int len_buffer = l1_post.plp[i].plp_num_blocks_max * cells_per_fec_block[i];
-        permutations[i] = new int [len_buffer];
-        address_cell_deinterleaving(l1_post.plp[i].plp_num_blocks_max, cells_per_fec_block[i], permutations[i]);
+        permutations[i].resize(len_buffer);
+        address_cell_deinterleaving(l1_post.plp[i].plp_num_blocks_max, cells_per_fec_block[i], permutations[i].data());
         frame_interval[i] = l1_post.plp[i].frame_interval;
         first_frame_idx[i] = l1_post.plp[i].first_frame_idx;
         last_frame_idx[i] = first_frame_idx[i] + (p_i[i] - 1) * frame_interval[i];
@@ -141,7 +141,7 @@ void time_deinterleaver::start(dvbt2_parameters _dvbt2, l1_presignalling _l1_pre
     buffer_a = static_cast<complex *>(_mm_malloc(sizeof(complex) * static_cast<unsigned int>(len_max), 32));
     buffer_b = static_cast<complex *>(_mm_malloc(sizeof(complex) * static_cast<unsigned int>(len_max), 32));
 
-    show_data = new complex[len_max];
+    show_data.resize(len_max);
     flag_start = true;
 }
 //-------------------------------------------------------------------------------------------
@@ -150,25 +150,8 @@ time_deinterleaver::~time_deinterleaver()
     emit stop_qam();
     if(thread->isRunning()) thread->wait(1000);
     if(flag_start){
-        delete [] fec_len_bits;
-        delete [] bits_per_cell;
-        delete [] n_ti;
-        delete [] p_i;
-        for (int i = 0; i < num_plp; ++i) delete[] fec_blocks_per_time_interleving[i];
-        delete [] fec_blocks_per_time_interleving;
-        delete [] frame_interval;
-        delete [] first_frame_idx;
-        delete [] cells_per_fec_block;
-        delete [] slice_end;
-        delete [] num_rows;
-        for (int i = 0; i < num_plp; ++i) delete[] num_cols[i];
-        delete [] num_cols;
-        for (int i = 0; i < num_plp; ++i) delete [] permutations[i];
-        delete [] permutations;
-        delete [] last_frame_idx;
         _mm_free(buffer_a);
         _mm_free(buffer_b);
-        delete [] show_data;
     }
 }
 //-------------------------------------------------------------------------------------------
@@ -191,7 +174,7 @@ void time_deinterleaver::address_cell_deinterleaving(int _num_fec_block_max, int
     int n = 0;
     int shift, temp;
     int index = 0;
-    int* first_permutation = new int[max_states];
+    std::vector<int> first_permutation(max_states);
     int address = 0;
     switch (pn_degree) {
     case 11:
@@ -263,7 +246,6 @@ void time_deinterleaver::address_cell_deinterleaving(int _num_fec_block_max, int
         }
         index += cells_size;
     }
-    delete [] first_permutation;
 }
 //-------------------------------------------------------------------------------------------
 void time_deinterleaver::l1_dyn_execute(l1_postsignalling _l1_post, int _len_in, complex* _ofdm_cell)
@@ -337,8 +319,8 @@ void time_deinterleaver::execute(int _len_in, complex* _ofdm_cell)
                 idx_row_ti = 0;
                 if(idx_show_plp == plp_id) {
                     int len = cells_per_fec_block_plp;
-                    memcpy(show_data, &time_deint_cell[0], sizeof(complex) * static_cast<unsigned long>(len));
-                    emit replace_constelation(len, show_data);
+                    memcpy(&show_data[0], &time_deint_cell[0], sizeof(complex) * static_cast<unsigned long>(len));
+                    emit replace_constelation(len, &show_data[0]);
                 }
                 mutex_out->lock();
                 emit ti_block(ti_block_size, time_deint_cell, plp_id, l1_post);
