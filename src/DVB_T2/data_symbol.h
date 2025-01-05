@@ -16,6 +16,7 @@
 #define DATA_SYMBOL_H
 
 #include <QObject>
+#include <vector>
 
 #include "dvbt2_definition.h"
 #include "pilot_generator.h"
@@ -28,8 +29,8 @@ public:
     explicit data_symbol(QObject* parent = nullptr);
     ~data_symbol();
 
-    complex *execute(int _idx_symbol, complex* _ofdm_cell,
-                     float &_sample_rate_offset, float &_phase_offset);
+    void execute(int _idx_symbol, complex* _ofdm_cell,
+                     float &_sample_rate_offset, float &_phase_offset, std::vector<complex> &out);
     void init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
               address_freq_deinterleaver* _address);
 

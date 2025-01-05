@@ -71,9 +71,9 @@ public:
 
 signals:
     void replace_null_indicator(const float _b1, const float _b2);
-    void l1_dyn_execute(l1_postsignalling _l1_post, int _len_in, complex* _in);
+    void l1_dyn_execute(l1_postsignalling _l1_post);
     void amount_plp(int _num_plp);
-    void data(int _len_in, complex* _in);
+    void data();
     void stop_deinterleaver();
     void finished();
 

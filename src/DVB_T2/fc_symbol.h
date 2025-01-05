@@ -28,7 +28,7 @@ public:
     explicit fc_symbol(QObject* parent = nullptr);
     ~fc_symbol();
 
-    complex *execute(complex* _ofdm_cell, float &_sample_rate_offset, float &_phase_offset);
+    void execute(complex* _ofdm_cell, float &_sample_rate_offset, float &_phase_offset, std::vector<complex> &out);
     void init(dvbt2_parameters _dvbt2, pilot_generator *_pilot,
               address_freq_deinterleaver *_address);
 
@@ -55,7 +55,6 @@ private:
     int idx_symbol;
     int* h_even_fc;
     int* h_odd_fc;
-    complex* deinterleaved_cell;
     complex* est_show = nullptr;
     complex* show_symbol = nullptr;
     complex* show_data = nullptr;

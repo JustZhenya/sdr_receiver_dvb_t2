@@ -23,6 +23,7 @@
 #include "DSP/fast_fourier_transform.h"
 #include "dvbt2_definition.h"
 #include "llr_demapper.h"
+#include "DSP/buffers.hh"
 
 class time_deinterleaver : public QObject
 {
@@ -34,6 +35,7 @@ public:
     void start(dvbt2_parameters _dvbt2, l1_presignalling _l1_pre, l1_postsignalling _l1_post);
     llr_demapper* qam;
     volatile int idx_show_plp = 0;
+    vector_fifo<complex> fifo{};
 
 signals:
     void ti_block(int _ti_block_size, complex* _time_deint_cell, int _plp_id, l1_postsignalling _l1_post);
@@ -42,8 +44,8 @@ signals:
     void finished();
 
 public slots:
-    void l1_dyn_execute(l1_postsignalling _l1_post, int _len_in, complex* _ofdm_cell);
-    void execute(int _len_in, complex* _ofdm_cell);
+    void l1_dyn_execute(l1_postsignalling _l1_post);
+    void execute();
     void stop();
 
 private:

@@ -113,6 +113,7 @@ void dvbt2_demodulator::reset()
     p2_init = false;
     demodulator_init = false;
     next_symbol_type = SYMBOL_TYPE_P1;
+    deinterleaver->fifo.reset();
     qDebug() << "dvbt2_demodulator reset";
 }
 //-------------------------------------------------------------------------------------------
@@ -333,12 +334,16 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
         }
         //________________________________________________________
         if(next_symbol_type == SYMBOL_TYPE_DATA) {
-            complex* deinterleaved_cell = data_demodulator.execute(idx_symbol, ofdm_cell,
-                                                              sample_rate_est, phase_est);
             if(deint_start) {
                 mutex_out->lock();
-                emit data(dvbt2.c_data, deinterleaved_cell);
+                std::vector<complex> tmp;
+                deinterleaver->fifo.take(tmp);
                 mutex_out->unlock();
+                data_demodulator.execute(idx_symbol, ofdm_cell, sample_rate_est, phase_est,tmp);
+                mutex_out->lock();
+                deinterleaver->fifo.push(tmp);
+                mutex_out->unlock();
+                emit data();
             }
             ++idx_symbol;
             if(idx_symbol == end_data_symbol) {
@@ -347,39 +352,54 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
             }
         }
         else if(next_symbol_type == SYMBOL_TYPE_FC) {
-            complex* deinterleaved_cell = fc_demod.execute(ofdm_cell, sample_rate_est, phase_est);
             if(deint_start) {
                 mutex_out->lock();
-                emit data(dvbt2.n_fc, deinterleaved_cell);
+                std::vector<complex> tmp;
+                deinterleaver->fifo.take(tmp);
                 mutex_out->unlock();
+                fc_demod.execute(ofdm_cell, sample_rate_est, phase_est,tmp);
+                mutex_out->lock();
+                deinterleaver->fifo.push(tmp);
+                mutex_out->unlock();
+                emit data();
             }
             next_symbol_type = SYMBOL_TYPE_P1;
         }
         else if(next_symbol_type == SYMBOL_TYPE_P2) {
             idx_symbol = 0;
             bool crc32_l1_post = false;
-            complex* deinterleaved_cell = p2_demodulator.execute(dvbt2, demodulator_init, idx_symbol, ofdm_cell,
+            mutex_out->lock();
+            std::vector<complex> tmp;
+            deinterleaver->fifo.take(tmp);
+            mutex_out->unlock();
+            p2_demodulator.execute(dvbt2, demodulator_init, idx_symbol, ofdm_cell,
                                                             l1_pre, l1_post, crc32_l1_pre, crc32_l1_post,
-                                                            sample_rate_est, phase_est);
+                                                            sample_rate_est, phase_est, tmp);
             if(crc32_l1_pre) {
                 if(demodulator_init) {
                     if(crc32_l1_post) {
                         if(deint_start) {
                             mutex_out->lock();
-                            emit l1_dyn_execute(l1_post, dvbt2.c_p2, deinterleaved_cell);
+                            deinterleaver->fifo.push(tmp);
                             mutex_out->unlock();
+                            emit l1_dyn_execute(l1_post);
                         }
                         else {
                             deinterleaver->start(dvbt2, l1_pre, l1_post);
                             deint_start = true;
                             mutex_out->lock();
-                            emit l1_dyn_execute(l1_post, dvbt2.c_p2, deinterleaved_cell);
+                            deinterleaver->fifo.push(tmp);
                             mutex_out->unlock();
+                            emit l1_dyn_execute(l1_post);
                             emit amount_plp(l1_post.num_plp);
                         }
+//                        mutex_out->lock();
+//                        emit l1_dyn_execute(l1_post, dvbt2.c_p2, deinterleaved_cell);
+//                        signal_out->wait(mutex_out);
+//                        mutex_out->unlock();
+                    }else{
                         mutex_out->lock();
-                        emit l1_dyn_execute(l1_post, dvbt2.c_p2, deinterleaved_cell);
-                        signal_out->wait(mutex_out);
+                        deinterleaver->fifo.release(tmp);
                         mutex_out->unlock();
                     }
                     ++idx_symbol;
@@ -398,12 +418,18 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                     }
                     demodulator_init = true;
                     next_symbol_type = SYMBOL_TYPE_P1;
+                    mutex_out->lock();
+                    deinterleaver->fifo.release(tmp);
+                    mutex_out->unlock();
 
                     continue;
 
                 }
             }
             else {
+                mutex_out->lock();
+                deinterleaver->fifo.release(tmp);
+                mutex_out->unlock();
                 if(!demodulator_init) {
                     set_guard_interval_by_brute_force();
                     next_symbol_type = SYMBOL_TYPE_P1;

@@ -17,6 +17,8 @@
 
 #include <cstring>
 #include <cstdlib>
+#include <vector>
+#include <deque>
 
 template<typename T, int LEN>
 class sum_of_buffer
@@ -96,6 +98,51 @@ public:
     void reset(){
         idx = 0;
         memset(buffer, 0, sizeof(T) * static_cast<unsigned int>(len*2));
+    }
+};
+
+template<typename T>
+class vector_fifo
+{
+private:
+    std::deque<std::vector<T>> empty{};
+    std::deque<std::vector<T>> queued{};
+
+public:
+    vector_fifo(){}
+
+    void take(std::vector<T>& v)
+    {
+        if(empty.size()==0)
+            v=std::vector<T>();
+        else{
+            v=std::move(empty.back());
+            empty.pop_back();
+        }
+    }
+
+    void release(std::vector<T>& v)
+    {
+        empty.emplace_back(std::move(v));
+    }
+
+    void push(std::vector<T>& v)
+    {
+        queued.emplace_back(std::move(v));
+    }
+
+    bool shift(std::vector<T>& v)
+    {
+        if(queued.size()==0)
+            return false;
+        v=std::move(queued.front());
+        queued.pop_front();
+        return true;
+    }
+
+    void reset()
+    {
+        queued.clear();
     }
 };
 

@@ -248,7 +248,7 @@ void time_deinterleaver::address_cell_deinterleaving(int _num_fec_block_max, int
     }
 }
 //-------------------------------------------------------------------------------------------
-void time_deinterleaver::l1_dyn_execute(l1_postsignalling _l1_post, int _len_in, complex* _ofdm_cell)
+void time_deinterleaver::l1_dyn_execute(l1_postsignalling _l1_post)
 {
     // dynamic l1 post signaling
     l1_post = _l1_post;
@@ -265,24 +265,29 @@ void time_deinterleaver::l1_dyn_execute(l1_postsignalling _l1_post, int _len_in,
         }
     }
     start_t2_frame = true;
-    execute(_len_in, _ofdm_cell);
+    execute();
 }
 //-------------------------------------------------------------------------------------------
-void time_deinterleaver::execute(int _len_in, complex* _ofdm_cell)
+void time_deinterleaver::execute()
 {
     mutex_in->lock();
-    signal_in->wakeOne();
+//    signal_in->wakeOne();
 
 //            mutex_in->unlock();
 //            return;
 
-    int num_cells = _len_in;
-    complex* ofdm_cell = &_ofdm_cell[0];
+    std::vector<complex> in;
+    const bool shifted=fifo.shift(in);
+    mutex_in->unlock();
+    if(!shifted)
+        return;
+    int num_cells = in.size();
+    complex* ofdm_cell = &in[0];
     if(start_t2_frame == true) {
         start_t2_frame = false;
         idx_cell = 0;
-        num_cells = _len_in - p2_start_idx_cell;
-        ofdm_cell = &_ofdm_cell[p2_start_idx_cell];
+        num_cells = in.size() - p2_start_idx_cell;
+        ofdm_cell = &in[p2_start_idx_cell];
         for (int i = 0; i < num_plp; ++i) {
             if(l1_post.dyn.plp[i].start == 0) plp_id = i;
         }
@@ -354,11 +359,14 @@ void time_deinterleaver::execute(int _len_in, complex* _ofdm_cell)
         }
         ++idx_cell;
     }
+    mutex_in->lock();
+    fifo.release(in);
     mutex_in->unlock();
 }
 //-------------------------------------------------------------------------------------------
 void time_deinterleaver::stop()
 {
+    fifo.reset();
     emit finished();
 }
 //-------------------------------------------------------------------------------------------

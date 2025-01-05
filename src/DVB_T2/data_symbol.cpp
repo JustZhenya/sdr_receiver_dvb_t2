@@ -96,8 +96,6 @@ void data_symbol::init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
     address->data_address_freq_deinterleaver(_dvbt2);
     h_even_data = address->h_even_data;
     h_odd_data = address->h_odd_data;
-    deinterleaved_buffer_a = new complex[c_data];
-    deinterleaved_buffer_b = new complex[c_data];
     est_show = new complex[fft_size];
     show_symbol = new complex[fft_size];
     show_data = new complex[c_data];
@@ -105,8 +103,8 @@ void data_symbol::init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
     show_est_data = new complex[k_total];
 }
 //-------------------------------------------------------------------------------------------
-complex* data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
-                              float &_sample_rate_offset, float &_phase_offset)
+void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
+                              float &_sample_rate_offset, float &_phase_offset, std::vector<complex> &out)
 {
     complex* ofdm_cell = &_ofdm_cell[left_nulls];
     complex est_pilot, est_dif;
@@ -136,15 +134,9 @@ complex* data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
     int idx_data = 0;
     int d = 0;
     int* h;
-    complex* deinterleaved_cell;
-    if(swap_buffer){
-        swap_buffer = false;
-        deinterleaved_cell = deinterleaved_buffer_b;
-    }
-    else{
-        swap_buffer = true;
-        deinterleaved_cell = deinterleaved_buffer_a;
-    }
+    if(out.size()!=c_data)
+        out.resize(c_data);
+    complex* deinterleaved_cell=out.data();
     if(idx_symbol % 2 == 0) h = h_odd_data;
     else h = h_even_data;
     //__for first pilot______
@@ -331,6 +323,5 @@ complex* data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
         emit replace_constelation(len, &show_data[0]);
     }
 
-    return deinterleaved_cell;
 }
 //-------------------------------------------------------------------------------------------

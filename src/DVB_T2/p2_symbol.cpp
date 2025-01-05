@@ -26,7 +26,6 @@ p2_symbol::p2_symbol(QObject *parent) : QObject(parent)
 //-------------------------------------------------------------------------------------------
 p2_symbol::~p2_symbol()
 {
-    if(deinterleaved_cell != nullptr) delete [] deinterleaved_cell;
     if(show_symbol != nullptr) delete [] show_symbol;
     if(show_data != nullptr) delete [] show_data;
     if(est_data != nullptr) delete [] est_data;
@@ -65,7 +64,6 @@ void p2_symbol::init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
     _address->p2_address_freq_deinterleaver(_dvbt2);
     h_even_p2 = _address->h_even_p2;
     h_odd_p2 = _address->h_odd_p2;
-    deinterleaved_cell = new complex[c_p2];
 
     show_symbol = new complex[fft_size];
     show_data = new complex[c_p2];
@@ -86,9 +84,9 @@ void p2_symbol::init_l1_randomizer()
     }
 }
 //-------------------------------------------------------------------------------------------
-complex* p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_symbol, complex* _ofdm_cell,
+void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_symbol, complex* _ofdm_cell,
                             l1_presignalling &_l1_pre, l1_postsignalling &_l1_post, bool &_crc32_l1_pre,
-                            bool &_crc32_l1_post, float &_sample_rate_offset, float &_phase_offset)
+                            bool &_crc32_l1_post, float &_sample_rate_offset, float &_phase_offset, std::vector<complex> &out)
 {
 
     complex* ofdm_cell = &_ofdm_cell[left_nulls];
@@ -117,6 +115,9 @@ complex* p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_id
     int idx_data = 0;
     int d = 0;
     int* h;
+    if(out.size()!=c_p2)
+        out.resize(c_p2);
+    deinterleaved_cell=out.data();
 
     if(idx_symbol % 2 == 0) h = h_odd_p2;
     else h = h_even_p2;
@@ -293,8 +294,6 @@ complex* p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_id
     else{
         _crc32_l1_pre = false;
     }
-
-    return deinterleaved_cell;
 
 }
 //-------------------------------------------------------------------------------------------

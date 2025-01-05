@@ -71,7 +71,6 @@ void fc_symbol::init(dvbt2_parameters _dvbt2, pilot_generator* _pilot,
     fc_pilot_refer = pilot->fc_pilot_refer.data();
     h_even_fc = address->h_even_fc;
     h_odd_fc = address->h_odd_fc;
-    deinterleaved_cell = new complex[n_fc];
     est_show = new complex[fft_size];
     show_symbol = new complex[fft_size];
     show_data = new complex[n_fc];
@@ -79,7 +78,7 @@ void fc_symbol::init(dvbt2_parameters _dvbt2, pilot_generator* _pilot,
     show_est_data = new complex[k_total];
 }
 //-------------------------------------------------------------------------------------------
-complex* fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, float &_phase_offset)
+void fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, float &_phase_offset, std::vector<complex> &out)
 {
     complex* ofdm_cell = &_ofdm_cell[left_nulls];
     complex est_pilot, est_dif;
@@ -107,6 +106,10 @@ complex* fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, flo
     int* h;
     if(idx_symbol % 2 == 0) h = h_odd_fc;
     else h = h_even_fc;
+
+    if(out.size()!=n_fc)
+        out.resize(n_fc);
+    complex* deinterleaved_cell=out.data();
 
     //__for first pilot______
     cell = ofdm_cell[0];
@@ -267,6 +270,5 @@ complex* fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, flo
     emit replace_spectrograph(fft_size, &show_symbol[0]);
     emit replace_constelation(len, &show_data[0]);
 
-    return deinterleaved_cell;
 }
 //-------------------------------------------------------------------------------------------
