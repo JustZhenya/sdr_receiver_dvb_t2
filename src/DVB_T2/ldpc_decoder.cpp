@@ -102,11 +102,10 @@ ldpc_decoder::ldpc_decoder(QWaitCondition* _signal_in, QMutex *_mutex_in, QObjec
 
     simd = new(std::align_val_t(sizeof(simd_type)))simd_type[sizeof(simd_type) * FEC_SIZE_NORMAL];
 
-    ldpc_fec = new uint8_t[FEC_SIZE_NORMAL * SIZEOF_SIMD];  // for fec size normal
     const unsigned int len_buffer = 54000 * SIZEOF_SIMD;    // for ldpc code 5/6
-    buffer_a = new uint8_t[len_buffer];
-    buffer_b = new uint8_t[len_buffer];
-    bch_fec = buffer_a;
+    buffer_a.resize(len_buffer);
+    buffer_b.resize(len_buffer);
+    bch_fec = buffer_a.data();
 
     mutex_out = new QMutex;
     signal_out = new QWaitCondition;
@@ -126,8 +125,6 @@ ldpc_decoder::~ldpc_decoder()
 {
     emit stop_decoder();
     if(thread->isRunning()) thread->wait(1000);
-    delete [] ldpc_fec;
-    delete [] bch_fec;
 }
 //------------------------------------------------------------------------------------------
 void ldpc_decoder::execute(int* _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, int8_t* _in)
@@ -252,25 +249,25 @@ void ldpc_decoder::execute(int* _idx_plp_simd, l1_postsignalling _l1_post, int _
         }
     }
 
-//    bch_fec = buffer_a;
+//    bch_fec = buffer_a.data();
 
 
     int len_out = k_ldpc * SIZEOF_SIMD;
     if(swap_buffer) {
         swap_buffer = false;
         mutex_out->lock();
-        emit bit_bch(plp_id, l1_post, len_out, buffer_a);
+        emit bit_bch(plp_id, l1_post, len_out, buffer_a.data());
         signal_out->wait(mutex_out);
         mutex_out->unlock();
-        bch_fec = buffer_b;
+        bch_fec = buffer_b.data();
     }
     else {
         swap_buffer = true;
         mutex_out->lock();
-        emit bit_bch(plp_id, l1_post, len_out, buffer_b);
+        emit bit_bch(plp_id, l1_post, len_out, buffer_b.data());
         signal_out->wait(mutex_out);
         mutex_out->unlock();
-        bch_fec = buffer_a;
+        bch_fec = buffer_a.data();
     }
 
     mutex_in->unlock();

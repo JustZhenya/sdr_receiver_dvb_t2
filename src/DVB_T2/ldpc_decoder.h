@@ -19,6 +19,7 @@
 #include <QThread>
 #include <QWaitCondition>
 #include <QMutex>
+#include <vector>
 
 #include "dvbt2_definition.h"
 #include "bch_decoder.h"
@@ -96,10 +97,9 @@ private:
     QWaitCondition* signal_out;
     QMutex* mutex_in;
     QMutex* mutex_out;
-    uint8_t* ldpc_fec;
     uint8_t* bch_fec;
-    uint8_t* buffer_a = nullptr;
-    uint8_t* buffer_b = nullptr;
+    std::vector<uint8_t> buffer_a{};
+    std::vector<uint8_t> buffer_b{};
     bool swap_buffer = true;
 
     LDPCDecoder<simd_type, algorithm_type> decode_normal_cod_1_2;
