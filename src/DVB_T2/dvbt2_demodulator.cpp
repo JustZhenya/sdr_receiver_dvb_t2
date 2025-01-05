@@ -94,6 +94,7 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
     signal_out = new QWaitCondition;
     deinterleaver = new time_deinterleaver(signal_out, mutex_out);
     thread = new QThread;
+    thread->setObjectName("time_deint");
     deinterleaver->moveToThread(thread);
     connect(this, &dvbt2_demodulator::data, deinterleaver, &time_deinterleaver::execute);
     connect(this, &dvbt2_demodulator::l1_dyn_execute, deinterleaver, &time_deinterleaver::l1_dyn_execute);

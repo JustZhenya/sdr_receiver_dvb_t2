@@ -26,6 +26,7 @@ time_deinterleaver::time_deinterleaver(QWaitCondition* _signal_in, QMutex *_mute
     signal_out = new QWaitCondition;
     qam = new llr_demapper(signal_out, mutex_out);
     thread = new QThread;
+    thread->setObjectName("llr_demapper");
     qam->moveToThread(thread);
     connect(this, &time_deinterleaver::ti_block, qam, &llr_demapper::execute);
     connect(this, &time_deinterleaver::stop_qam, qam, &llr_demapper::stop);

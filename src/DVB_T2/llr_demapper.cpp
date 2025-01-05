@@ -80,6 +80,7 @@ llr_demapper::llr_demapper(QWaitCondition *_signal_in, QMutex* _mutex, QObject* 
     signal_out = new QWaitCondition;
     decoder = new ldpc_decoder(signal_out, mutex_out);
     thread = new QThread;
+    thread->setObjectName("ldpc_decoder");
     decoder->moveToThread(thread);
     connect(this, &llr_demapper::soft_multiplexer_de_twist, decoder, &ldpc_decoder::execute);
     connect(this, &llr_demapper::stop_decoder, decoder, &ldpc_decoder::stop);

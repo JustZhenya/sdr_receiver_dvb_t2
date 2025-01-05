@@ -38,6 +38,7 @@ QMAKE_CXXFLAGS += -std=c++1z
 # QMAKE_CXXFLAGS += -march=native
 QMAKE_CXXFLAGS += -ffast-math
 QMAKE_CXXFLAGS += -mavx2
+QMAKE_CXXFLAGS += -g
 
 }
 

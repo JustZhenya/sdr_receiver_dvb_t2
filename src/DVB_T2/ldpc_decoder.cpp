@@ -125,6 +125,7 @@ ldpc_decoder::ldpc_decoder(QWaitCondition* _signal_in, QMutex *_mutex_in, QObjec
     signal_out = new QWaitCondition;
     decoder = new bch_decoder(signal_out, mutex_out);
     thread = new QThread;
+    thread->setObjectName("bch_decoder");
     decoder->moveToThread(thread);
     connect(this, &ldpc_decoder::bit_bch, decoder, &bch_decoder::execute);
     connect(this, &ldpc_decoder::stop_decoder, decoder, &bch_decoder::stop);
