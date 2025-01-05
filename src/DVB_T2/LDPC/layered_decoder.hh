@@ -112,7 +112,7 @@ public:
   LDPCDecoder() : initialized(false)
   {
   }
-  void init(LDPCInterface *it)
+  void init(LDPCInterface &&it)
   {
     if (initialized) {
       free(bnl);
@@ -121,7 +121,7 @@ public:
       delete[] pos;
     }
     initialized = true;
-    LDPCInterface *ldpc = it->clone();
+    LDPCInterface *ldpc = it.clone();
     N = ldpc->code_len();
     K = ldpc->data_len();
     M = ldpc->group_len();

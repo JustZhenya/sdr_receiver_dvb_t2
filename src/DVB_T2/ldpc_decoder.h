@@ -102,20 +102,6 @@ private:
     uint8_t* buffer_b = nullptr;
     bool swap_buffer = true;
 
-    LDPCInterface* ldpc_fec_normal_cod_1_2;
-    LDPCInterface* ldpc_fec_normal_cod_3_4;
-    LDPCInterface* ldpc_fec_normal_cod_2_3;
-    LDPCInterface* ldpc_fec_normal_cod_3_5;
-    LDPCInterface* ldpc_fec_normal_cod_4_5;
-    LDPCInterface* ldpc_fec_normal_cod_5_6;
-
-    LDPCInterface* ldpc_fec_short_cod_1_2;
-    LDPCInterface* ldpc_fec_short_cod_3_4;
-    LDPCInterface* ldpc_fec_short_cod_2_3;
-    LDPCInterface* ldpc_fec_short_cod_3_5;
-    LDPCInterface* ldpc_fec_short_cod_4_5;
-    LDPCInterface* ldpc_fec_short_cod_5_6;
-
     LDPCDecoder<simd_type, algorithm_type> decode_normal_cod_1_2;
     LDPCDecoder<simd_type, algorithm_type> decode_normal_cod_3_4;
     LDPCDecoder<simd_type, algorithm_type> decode_normal_cod_2_3;

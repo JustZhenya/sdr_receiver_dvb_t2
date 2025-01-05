@@ -75,20 +75,10 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
     for(uint i = 0; i < max_len_symbol; ++i) {
         buffer_sym[i] = {0.0f, 0.0f};
     }
-    //p1 symbol
-    p1_demodulator = new p1_symbol();
     //__Fast Fourier Transform__
     fft = new fast_fourier_transform;
     //pilot generator
     pilot = new pilot_generator();
-    //address of frequency deinterleaved
-    fq_deinterleaver = new address_freq_deinterleaver();
-    //p2 symbol
-    p2_demodulator = new p2_symbol();
-    //data symbol
-    data_demodulator = new data_symbol();
-    //frame closing (fc) symbol
-    fc_demod = new fc_symbol();
     //time deinterleaver and removal of cyclic Q-delay
     mutex_out = new QMutex;
     signal_out = new QWaitCondition;
@@ -110,10 +100,6 @@ dvbt2_demodulator::~dvbt2_demodulator()
 {   
     emit stop_deinterleaver();
     if(thread->isRunning()) thread->wait(1000);
-    delete p1_demodulator;
-    delete p2_demodulator;
-    delete data_demodulator;
-    delete fc_demod;
     delete fft;
     delete [] out_derotate_sample;
     delete [] out_decimator;
@@ -145,8 +131,8 @@ void dvbt2_demodulator::init_dvbt2()
     dvbt2.miso_group = MISO_TX1;//?
     dvbt2_p2_parameters_init(dvbt2);
     in_fft = fft->init(dvbt2.fft_size);
-    fq_deinterleaver->init(dvbt2);
-    p2_demodulator->init(dvbt2, pilot, fq_deinterleaver);
+    fq_deinterleaver.init(dvbt2);
+    p2_demodulator.init(dvbt2, pilot, &fq_deinterleaver);
     // for start;
     dvbt2.guard_interval_size = dvbt2.fft_size / 4;
     symbol_size = dvbt2.fft_size + dvbt2.guard_interval_size;
@@ -293,7 +279,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
         if(next_symbol_type == SYMBOL_TYPE_P1) {
 
             bool p1_decoded = false;
-            if(p1_demodulator->execute(signal_->gain_changed, level_detect, len_in, in, consume,
+            if(p1_demodulator.execute(signal_->gain_changed, level_detect, len_in, in, consume,
                                  buffer_sym, idx_buffer_sym, dvbt2, signal_->coarse_freq_offset,
                                  p1_decoded, signal_->p1_reset)) {
                 if(p2_init){
@@ -356,7 +342,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
         }
         //________________________________________________________
         if(next_symbol_type == SYMBOL_TYPE_DATA) {
-            complex* deinterleaved_cell = data_demodulator->execute(idx_symbol, ofdm_cell,
+            complex* deinterleaved_cell = data_demodulator.execute(idx_symbol, ofdm_cell,
                                                               sample_rate_est, phase_est);
             if(deint_start) {
                 mutex_out->lock();
@@ -370,7 +356,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
             }
         }
         else if(next_symbol_type == SYMBOL_TYPE_FC) {
-            complex* deinterleaved_cell = fc_demod->execute(ofdm_cell, sample_rate_est, phase_est);
+            complex* deinterleaved_cell = fc_demod.execute(ofdm_cell, sample_rate_est, phase_est);
             if(deint_start) {
                 mutex_out->lock();
                 emit data(dvbt2.n_fc, deinterleaved_cell);
@@ -381,7 +367,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
         else if(next_symbol_type == SYMBOL_TYPE_P2) {
             idx_symbol = 0;
             bool crc32_l1_post = false;
-            complex* deinterleaved_cell = p2_demodulator->execute(dvbt2, demodulator_init, idx_symbol, ofdm_cell,
+            complex* deinterleaved_cell = p2_demodulator.execute(dvbt2, demodulator_init, idx_symbol, ofdm_cell,
                                                             l1_pre, l1_post, crc32_l1_pre, crc32_l1_post,
                                                             sample_rate_est, phase_est);
             if(crc32_l1_pre) {
@@ -410,11 +396,11 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                 }
                 else {
                     set_guard_interval();
-                    data_demodulator->init(dvbt2, pilot, fq_deinterleaver);
+                    data_demodulator.init(dvbt2, pilot, &fq_deinterleaver);
                     end_data_symbol = dvbt2.len_frame - dvbt2.l_fc;
                     if(dvbt2.l_fc) {
                         frame_closing_symbol = true;
-                        fc_demod->init(dvbt2, pilot, fq_deinterleaver);
+                        fc_demod.init(dvbt2, pilot, &fq_deinterleaver);
                     }
                     else {
                         frame_closing_symbol = false;

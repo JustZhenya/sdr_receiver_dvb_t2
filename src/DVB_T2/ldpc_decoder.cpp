@@ -82,33 +82,20 @@ ldpc_decoder::ldpc_decoder(QWaitCondition* _signal_in, QMutex *_mutex_in, QObjec
     signal_in(_signal_in),
     mutex_in(_mutex_in)
 {
-    ldpc_fec_normal_cod_1_2 = new LDPC<DVB_T2_TABLE_NORMAL_C1_2>();
-    ldpc_fec_normal_cod_3_4 = new LDPC<DVB_T2_TABLE_NORMAL_C3_4>();
-    ldpc_fec_normal_cod_2_3 = new LDPC<DVB_T2_TABLE_NORMAL_C2_3>();
-    ldpc_fec_normal_cod_3_5 = new LDPC<DVB_T2_TABLE_NORMAL_C3_5>();
-    ldpc_fec_normal_cod_4_5 = new LDPC<DVB_T2_TABLE_NORMAL_C4_5>();
-    ldpc_fec_normal_cod_5_6 = new LDPC<DVB_T2_TABLE_NORMAL_C5_6>();
 
-    ldpc_fec_short_cod_1_2 = new LDPC<DVB_T2_TABLE_SHORT_C1_2>();
-    ldpc_fec_short_cod_3_4 = new LDPC<DVB_T2_TABLE_SHORT_C3_4>();
-    ldpc_fec_short_cod_2_3 = new LDPC<DVB_T2_TABLE_SHORT_C2_3>();
-    ldpc_fec_short_cod_3_5 = new LDPC<DVB_T2_TABLE_SHORT_C3_5>();
-    ldpc_fec_short_cod_4_5 = new LDPC<DVB_T2_TABLE_SHORT_C4_5>();
-    ldpc_fec_short_cod_5_6 = new LDPC<DVB_T2_TABLE_SHORT_C5_6>();
+    decode_normal_cod_1_2.init(LDPC<DVB_T2_TABLE_NORMAL_C1_2>());
+    decode_normal_cod_3_4.init(LDPC<DVB_T2_TABLE_NORMAL_C3_4>());
+    decode_normal_cod_2_3.init(LDPC<DVB_T2_TABLE_NORMAL_C2_3>());
+    decode_normal_cod_3_5.init(LDPC<DVB_T2_TABLE_NORMAL_C3_5>());
+    decode_normal_cod_4_5.init(LDPC<DVB_T2_TABLE_NORMAL_C4_5>());
+    decode_normal_cod_5_6.init(LDPC<DVB_T2_TABLE_NORMAL_C5_6>());
 
-    decode_normal_cod_1_2.init(ldpc_fec_normal_cod_1_2);
-    decode_normal_cod_3_4.init(ldpc_fec_normal_cod_3_4);
-    decode_normal_cod_2_3.init(ldpc_fec_normal_cod_2_3);
-    decode_normal_cod_3_5.init(ldpc_fec_normal_cod_3_5);
-    decode_normal_cod_4_5.init(ldpc_fec_normal_cod_4_5);
-    decode_normal_cod_5_6.init(ldpc_fec_normal_cod_5_6);
-
-    decode_short_cod_1_2.init(ldpc_fec_short_cod_1_2);
-    decode_short_cod_3_4.init(ldpc_fec_short_cod_3_4);
-    decode_short_cod_2_3.init(ldpc_fec_short_cod_2_3);
-    decode_short_cod_3_5.init(ldpc_fec_short_cod_3_5);
-    decode_short_cod_4_5.init(ldpc_fec_short_cod_4_5);
-    decode_short_cod_5_6.init(ldpc_fec_short_cod_5_6);
+    decode_short_cod_1_2.init(LDPC<DVB_T2_TABLE_SHORT_C1_2>());
+    decode_short_cod_3_4.init(LDPC<DVB_T2_TABLE_SHORT_C3_4>());
+    decode_short_cod_2_3.init(LDPC<DVB_T2_TABLE_SHORT_C2_3>());
+    decode_short_cod_3_5.init(LDPC<DVB_T2_TABLE_SHORT_C3_5>());
+    decode_short_cod_4_5.init(LDPC<DVB_T2_TABLE_SHORT_C4_5>());
+    decode_short_cod_5_6.init(LDPC<DVB_T2_TABLE_SHORT_C5_6>());
 
 //    aligned_buffer = aligned_alloc(sizeof(simd_type), sizeof(simd_type) * FEC_SIZE_NORMAL);
 //    simd = reinterpret_cast<simd_type*>(aligned_buffer);
@@ -139,18 +126,6 @@ ldpc_decoder::~ldpc_decoder()
 {
     emit stop_decoder();
     if(thread->isRunning()) thread->wait(1000);
-    delete ldpc_fec_normal_cod_1_2;
-    delete ldpc_fec_normal_cod_3_5;
-    delete ldpc_fec_normal_cod_2_3;
-    delete ldpc_fec_normal_cod_3_4;
-    delete ldpc_fec_normal_cod_4_5;
-    delete ldpc_fec_normal_cod_5_6;
-    delete ldpc_fec_short_cod_1_2;
-    delete ldpc_fec_short_cod_3_4;
-    delete ldpc_fec_short_cod_2_3;
-    delete ldpc_fec_short_cod_3_5;
-    delete ldpc_fec_short_cod_4_5;
-    delete ldpc_fec_short_cod_5_6;
     delete [] ldpc_fec;
     delete [] bch_fec;
 }

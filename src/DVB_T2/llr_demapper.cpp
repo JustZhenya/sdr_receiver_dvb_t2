@@ -44,37 +44,27 @@ llr_demapper::llr_demapper(QWaitCondition *_signal_in, QMutex* _mutex, QObject* 
     int column, row;
     column = 2025;
     row = 8;
-    address_qam16_fecshort = new int[FEC_SIZE_SHORT];
-    address_generator(column, row, address_qam16_fecshort, tc_qam16_short, demux_16);
+    address_generator(column, row, address_qam16_fecshort.data(), tc_qam16_short, demux_16);
     column = 8100;
-    address_qam16_fecnormal = new int[FEC_SIZE_NORMAL];
-    address_generator(column, row, address_qam16_fecnormal, tc_qam16_normal, demux_16);
-    address_qam16_fecnormal_3_5 = new int[FEC_SIZE_NORMAL];
-    address_generator(column, row, address_qam16_fecnormal_3_5, tc_qam16_normal, demux_16_fec_size_normal_code_3_5);
+    address_generator(column, row, address_qam16_fecnormal.data(), tc_qam16_normal, demux_16);
+    address_generator(column, row, address_qam16_fecnormal_3_5.data(), tc_qam16_normal, demux_16_fec_size_normal_code_3_5);
     column = 1350;
     row = 12;
-    address_qam64_fecshort = new int[FEC_SIZE_SHORT];
-    address_generator(column, row, address_qam64_fecshort, tc_qam64_short, demux_64);
+    address_generator(column, row, address_qam64_fecshort.data(), tc_qam64_short, demux_64);
     column = 5400;
-    address_qam64_fecnormal = new int[FEC_SIZE_NORMAL];
-    address_generator(column, row, address_qam64_fecnormal, tc_qam64_normal, demux_64);
-    address_qam64_fecnormal_3_5 = new int[FEC_SIZE_NORMAL];
-    address_generator(column, row, address_qam64_fecnormal_3_5, tc_qam64_normal, demux_64_fec_size_normal_code_3_5);
+    address_generator(column, row, address_qam64_fecnormal.data(), tc_qam64_normal, demux_64);
+    address_generator(column, row, address_qam64_fecnormal_3_5.data(), tc_qam64_normal, demux_64_fec_size_normal_code_3_5);
     column = 2025;
     row = 8;
-    address_qam256_fecshort = new int[FEC_SIZE_SHORT];
-    address_generator(column, row, address_qam256_fecshort, tc_qam256_short, demux_256_fec_size_short);
+    address_generator(column, row, address_qam256_fecshort.data(), tc_qam256_short, demux_256_fec_size_short);
     column = 4050;
     row = 16;
-    address_qam256_fecnormal = new int[FEC_SIZE_NORMAL];
-    address_generator(column, row, address_qam256_fecnormal, tc_qam256_normal, demux_256_fec_size_normal);
-    address_qam256_fecnormal_3_5 = new int[FEC_SIZE_NORMAL];
-    address_generator(column, row, address_qam256_fecnormal_3_5, tc_qam256_normal, demux_256_fec_size_normal_3_5);
-    address_qam256_fecnormal_2_3 = new int[FEC_SIZE_NORMAL];
-    address_generator(column, row, address_qam256_fecnormal_2_3, tc_qam256_normal, demux_256_fec_size_normal_2_3);
+    address_generator(column, row, address_qam256_fecnormal.data(), tc_qam256_normal, demux_256_fec_size_normal);
+    address_generator(column, row, address_qam256_fecnormal_3_5.data(), tc_qam256_normal, demux_256_fec_size_normal_3_5);
+    address_generator(column, row, address_qam256_fecnormal_2_3.data(), tc_qam256_normal, demux_256_fec_size_normal_2_3);
 
-    buffer_a = new int8_t[FEC_SIZE_NORMAL * SIZEOF_SIMD];
-    buffer_b = new int8_t[FEC_SIZE_NORMAL * SIZEOF_SIMD];
+    buffer_a.resize(FEC_SIZE_NORMAL * SIZEOF_SIMD);
+    buffer_b.resize(FEC_SIZE_NORMAL * SIZEOF_SIMD);
 
     mutex_out = new QMutex;
     signal_out = new QWaitCondition;
@@ -94,18 +84,6 @@ llr_demapper::~llr_demapper()
 {
     emit stop_decoder();
     if(thread->isRunning()) thread->wait(1000);
-    delete [] buffer_a;
-    delete [] buffer_b;
-    delete [] address_qam16_fecshort;
-    delete [] address_qam16_fecnormal;
-    delete [] address_qam16_fecnormal_3_5;
-    delete [] address_qam64_fecshort;
-    delete [] address_qam64_fecnormal;
-    delete [] address_qam64_fecnormal_3_5;
-    delete [] address_qam256_fecshort;
-    delete [] address_qam256_fecnormal;
-    delete [] address_qam256_fecnormal_2_3;
-    delete [] address_qam256_fecnormal_3_5;
 }
 //------------------------------------------------------------------------------------------
 void llr_demapper::address_generator(int _column, int _row, int* _address, const int* _tc,
@@ -170,10 +148,8 @@ void llr_demapper::qpsk(int _plp_id, l1_postsignalling _l1_post, int _len_in, co
     int fec_size = FEC_SIZE_NORMAL;
     if(fec_type == FECFRAME_SHORT) fec_size = FEC_SIZE_SHORT;
     int idx_out = 0;
-    static int blocks = 0;
-    static int8_t* out;
-    if(swap_buffer) out = buffer_a;
-    else out = buffer_b;
+    if(swap_buffer) out = buffer_a.data();
+    else out = buffer_b.data();
     float sum_s = 0;
     float sum_e = 0;
     float snr, precision;
@@ -213,13 +189,13 @@ void llr_demapper::qpsk(int _plp_id, l1_postsignalling _l1_post, int _len_in, co
                 mutex_out->lock();
                 if(swap_buffer) {
                     swap_buffer = false;
-                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_a);
-                    out = buffer_b;
+                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_a.data());
+                    out = buffer_b.data();
                 }
                 else {
                     swap_buffer = true;
-                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b);
-                    out = buffer_a;
+                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b.data());
+                    out = buffer_a.data();
                 }
                 signal_out->wait(mutex_out);
                 mutex_out->unlock();
@@ -240,11 +216,9 @@ void llr_demapper::qam16(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
     dvbt2_code_rate_t code_rate = static_cast<dvbt2_code_rate_t>(l1_post.plp[plp_id].plp_cod);
     int fec_size;
     int idx_out = 0;
-    static int blocks = 0;
-    static int8_t* out;
     if(blocks == 0){
-        if(swap_buffer) out = buffer_a;
-        else out = buffer_b;
+        if(swap_buffer) out = buffer_a.data();
+        else out = buffer_b.data();
     }
     if(derotate){
         for(int i = 0; i < len_in; ++i) _in[i] *=  derotate_qam16;
@@ -294,12 +268,12 @@ void llr_demapper::qam16(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
     signbits = _mm256_set1_ps(-0.0f);
     if(fec_type == FEC_FRAME_NORMAL) {
         fec_size = FEC_SIZE_NORMAL;
-        if(code_rate == C3_5) address = address_qam16_fecnormal_3_5;
-        else address = address_qam16_fecnormal;
+        if(code_rate == C3_5) address = address_qam16_fecnormal_3_5.data();
+        else address = address_qam16_fecnormal.data();
     }
     else{
         fec_size = FEC_SIZE_SHORT;
-        address = address_qam16_fecshort;
+        address = address_qam16_fecshort.data();
     }
     address_begin = address;
 
@@ -349,13 +323,13 @@ void llr_demapper::qam16(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
                 mutex_out->lock();
                 if(swap_buffer) {
                     swap_buffer = false;
-                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_a);
-                    out = buffer_b;
+                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_a.data());
+                    out = buffer_b.data();
                 }
                 else {
                     swap_buffer = true;
-                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b);
-                    out = buffer_a;
+                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b.data());
+                    out = buffer_a.data();
                 }
                 signal_out->wait(mutex_out);
                 mutex_out->unlock();
@@ -376,11 +350,9 @@ void llr_demapper::qam64(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
     dvbt2_code_rate_t code_rate = static_cast<dvbt2_code_rate_t>(l1_post.plp[plp_id].plp_cod);
     int fec_size;
     int idx_out = 0;
-    static int blocks = 0;
-    static int8_t* out;
     if(blocks == 0) {
-        if(swap_buffer) out = buffer_a;
-        else out = buffer_b;
+        if(swap_buffer) out = buffer_a.data();
+        else out = buffer_b.data();
     }
     if(derotate) {
         for(int i = 0; i < len_in; ++i) _in[i] *=  derotate_qam64;
@@ -455,12 +427,12 @@ void llr_demapper::qam64(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
     signbits = _mm256_set1_ps(-0.0f);
     if(fec_type == FEC_FRAME_NORMAL) {
         fec_size = FEC_SIZE_NORMAL;
-        if(code_rate == C3_5) address = address_qam64_fecnormal_3_5;
-        else address = address_qam64_fecnormal;
+        if(code_rate == C3_5) address = address_qam64_fecnormal_3_5.data();
+        else address = address_qam64_fecnormal.data();
     }
     else{
         fec_size = FEC_SIZE_SHORT;
-        address = address_qam64_fecshort;
+        address = address_qam64_fecshort.data();
     }
     address_begin = address;
 
@@ -520,13 +492,13 @@ void llr_demapper::qam64(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
                 mutex_out->lock();
                 if(swap_buffer) {
                     swap_buffer = false;
-                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_a);
-                    out = buffer_b;
+                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_a.data());
+                    out = buffer_b.data();
                 }
                 else {
                     swap_buffer = true;
-                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b);
-                    out = buffer_a;
+                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b.data());
+                    out = buffer_a.data();
                 }
                 signal_out->wait(mutex_out);
                 mutex_out->unlock();
@@ -547,11 +519,9 @@ void llr_demapper::qam256(int _plp_id, l1_postsignalling _l1_post, int _len_in, 
     dvbt2_code_rate_t code_rate = static_cast<dvbt2_code_rate_t>(l1_post.plp[plp_id].plp_cod);
     int fec_size;
     int idx_out = 0;
-    static int blocks = 0;
-    static int8_t* out;
     if(blocks == 0) {
-        if(swap_buffer) out = buffer_a;
-        else out = buffer_b;
+        if(swap_buffer) out = buffer_a.data();
+        else out = buffer_b.data();
     }
     if(derotate) {
         for(int i = 0; i < len_in; ++i) _in[i] *=  derotate_qam256;
@@ -677,13 +647,13 @@ void llr_demapper::qam256(int _plp_id, l1_postsignalling _l1_post, int _len_in, 
     signbits = _mm256_set1_ps(-0.0f);
     if(fec_type == FEC_FRAME_NORMAL) {
         fec_size = FEC_SIZE_NORMAL;
-        if(code_rate == C3_5) address = address_qam256_fecnormal_3_5;
-        else if (code_rate == C2_3) address = address_qam256_fecnormal_2_3;
-        else address = address_qam256_fecnormal;
+        if(code_rate == C3_5) address = address_qam256_fecnormal_3_5.data();
+        else if (code_rate == C2_3) address = address_qam256_fecnormal_2_3.data();
+        else address = address_qam256_fecnormal.data();
     }
     else{
         fec_size = FEC_SIZE_SHORT;
-        address = address_qam256_fecshort;
+        address = address_qam256_fecshort.data();
     }
     address_begin = address;
 
@@ -753,13 +723,13 @@ void llr_demapper::qam256(int _plp_id, l1_postsignalling _l1_post, int _len_in, 
                 mutex_out->lock();
                 if(swap_buffer) {
                     swap_buffer = false;
-                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_a);
-                    out = buffer_b;
+                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_a.data());
+                    out = buffer_b.data();
                 }
                 else {
                     swap_buffer = true;
-                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b);
-                    out = buffer_a;
+                    emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b.data());
+                    out = buffer_a.data();
                 }
                 signal_out->wait(mutex_out);
                 mutex_out->unlock();

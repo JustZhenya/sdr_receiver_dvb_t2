@@ -517,10 +517,10 @@ void main_window::on_push_button_start_clicked()
 //------------------------------------------------------------------------------------------------
 void main_window::connect_info()
 {
-    connect(dvbt2->p1_demodulator, &p1_symbol::bad_signal, this, &main_window::bad_signal);
-    connect(dvbt2->p2_demodulator, &p2_symbol::view_l1_presignalling, this, &main_window::view_l1_presignalling);
-    connect(dvbt2->p2_demodulator, &p2_symbol::view_l1_postsignalling, this, &main_window::view_l1_postsignalling);
-    connect(dvbt2->p2_demodulator, &p2_symbol::view_l1_dynamic, this, &main_window::view_l1_dynamic);
+    connect(&dvbt2->p1_demodulator, &p1_symbol::bad_signal, this, &main_window::bad_signal);
+    connect(&dvbt2->p2_demodulator, &p2_symbol::view_l1_presignalling, this, &main_window::view_l1_presignalling);
+    connect(&dvbt2->p2_demodulator, &p2_symbol::view_l1_postsignalling, this, &main_window::view_l1_postsignalling);
+    connect(&dvbt2->p2_demodulator, &p2_symbol::view_l1_dynamic, this, &main_window::view_l1_dynamic);
     connect(dvbt2, &dvbt2_demodulator::amount_plp, this, &main_window::amount_plp);
     connect(dvbt2->deinterleaver->qam, &llr_demapper::signal_noise_ratio,
             this, &main_window::signal_noise_ratio);
@@ -566,10 +566,10 @@ void main_window::on_push_button_stop_clicked()
 //------------------------------------------------------------------------------------------------
 void main_window::disconnect_info()
 {
-    disconnect(dvbt2->p1_demodulator, &p1_symbol::bad_signal, this, &main_window::bad_signal);
-    disconnect(dvbt2->p2_demodulator, &p2_symbol::view_l1_presignalling, this, &main_window::view_l1_presignalling);
-    disconnect(dvbt2->p2_demodulator, &p2_symbol::view_l1_postsignalling, this, &main_window::view_l1_postsignalling);
-    disconnect(dvbt2->p2_demodulator, &p2_symbol::view_l1_dynamic, this, &main_window::view_l1_dynamic);
+    disconnect(&dvbt2->p1_demodulator, &p1_symbol::bad_signal, this, &main_window::bad_signal);
+    disconnect(&dvbt2->p2_demodulator, &p2_symbol::view_l1_presignalling, this, &main_window::view_l1_presignalling);
+    disconnect(&dvbt2->p2_demodulator, &p2_symbol::view_l1_postsignalling, this, &main_window::view_l1_postsignalling);
+    disconnect(&dvbt2->p2_demodulator, &p2_symbol::view_l1_dynamic, this, &main_window::view_l1_dynamic);
     disconnect(dvbt2, &dvbt2_demodulator::amount_plp, this, &main_window::amount_plp);
     disconnect(dvbt2->deinterleaver->qam, &llr_demapper::signal_noise_ratio,
                this, &main_window::signal_noise_ratio);
@@ -627,30 +627,30 @@ void main_window::on_tab_widget_currentChanged(int index)
     switch(index){
     case 1:
         disconnect_signals();
-        connect(dvbt2->p1_demodulator, &p1_symbol::replace_spectrograph,
+        connect(&dvbt2->p1_demodulator, &p1_symbol::replace_spectrograph,
                 p1_spectrograph, &plot::replace_spectrograph);
-        connect(dvbt2->p1_demodulator, &p1_symbol::replace_constelation,
+        connect(&dvbt2->p1_demodulator, &p1_symbol::replace_constelation,
                 p1_constelation, &plot::replace_constelation);
         break;
     case 2:
         disconnect_signals();
-        connect(dvbt2->p2_demodulator, &p2_symbol::replace_spectrograph,
+        connect(&dvbt2->p2_demodulator, &p2_symbol::replace_spectrograph,
                 p2_spectrograph, &plot::replace_spectrograph);
-        connect(dvbt2->p2_demodulator, &p2_symbol::replace_constelation,
+        connect(&dvbt2->p2_demodulator, &p2_symbol::replace_constelation,
                 p2_constelation, &plot::replace_constelation);
         break;
     case 3:
         disconnect_signals();
-        connect(dvbt2->data_demodulator, &data_symbol::replace_spectrograph,
+        connect(&dvbt2->data_demodulator, &data_symbol::replace_spectrograph,
                 data_spectrograph, &plot::replace_spectrograph);
-        connect(dvbt2->data_demodulator, &data_symbol::replace_constelation,
+        connect(&dvbt2->data_demodulator, &data_symbol::replace_constelation,
                 data_constelation, &plot::replace_constelation);
         break;
     case 4:
         disconnect_signals();
-        connect(dvbt2->fc_demod, &fc_symbol::replace_spectrograph,
+        connect(&dvbt2->fc_demod, &fc_symbol::replace_spectrograph,
                 fc_spectrograph, &plot::replace_spectrograph);
-        connect(dvbt2->fc_demod, &fc_symbol::replace_constelation,
+        connect(&dvbt2->fc_demod, &fc_symbol::replace_constelation,
                 fc_constelation, &plot::replace_constelation);
         break;
     case 5:
@@ -660,10 +660,10 @@ void main_window::on_tab_widget_currentChanged(int index)
         break;
     case 8:
         disconnect_signals();
-        connect(dvbt2->p1_demodulator, &p1_symbol::replace_oscilloscope,
+        connect(&dvbt2->p1_demodulator, &p1_symbol::replace_oscilloscope,
                 p1_correlation_oscilloscope, &plot::replace_oscilloscope);
 
-        connect(dvbt2->p2_demodulator, &p2_symbol::replace_oscilloscope,
+        connect(&dvbt2->p2_demodulator, &p2_symbol::replace_oscilloscope,
                 p2_equalizer_oscilloscope, &plot::replace_oscilloscope);
 
         connect(dvbt2, &dvbt2_demodulator::replace_null_indicator,
@@ -674,29 +674,29 @@ void main_window::on_tab_widget_currentChanged(int index)
 //------------------------------------------------------------------------------------------------
 void main_window::disconnect_signals()
 {
-    disconnect(dvbt2->p1_demodulator, &p1_symbol::replace_spectrograph,
+    disconnect(&dvbt2->p1_demodulator, &p1_symbol::replace_spectrograph,
             p1_spectrograph, &plot::replace_spectrograph);
-    disconnect(dvbt2->p1_demodulator, &p1_symbol::replace_constelation,
+    disconnect(&dvbt2->p1_demodulator, &p1_symbol::replace_constelation,
             p1_constelation, &plot::replace_constelation);
-    disconnect(dvbt2->p2_demodulator, &p2_symbol::replace_spectrograph,
+    disconnect(&dvbt2->p2_demodulator, &p2_symbol::replace_spectrograph,
             p2_spectrograph, &plot::replace_spectrograph);
-    disconnect(dvbt2->p2_demodulator, &p2_symbol::replace_constelation,
+    disconnect(&dvbt2->p2_demodulator, &p2_symbol::replace_constelation,
             p2_constelation, &plot::replace_constelation);
-    disconnect(dvbt2->data_demodulator, &data_symbol::replace_constelation,
+    disconnect(&dvbt2->data_demodulator, &data_symbol::replace_constelation,
             data_spectrograph, &plot::replace_constelation);
-    disconnect(dvbt2->data_demodulator, &data_symbol::replace_spectrograph,
+    disconnect(&dvbt2->data_demodulator, &data_symbol::replace_spectrograph,
             data_spectrograph, &plot::replace_spectrograph);
-    disconnect(dvbt2->data_demodulator, &data_symbol::replace_constelation,
+    disconnect(&dvbt2->data_demodulator, &data_symbol::replace_constelation,
             data_constelation, &plot::replace_constelation);
-    disconnect(dvbt2->fc_demod, &fc_symbol::replace_spectrograph,
+    disconnect(&dvbt2->fc_demod, &fc_symbol::replace_spectrograph,
             fc_spectrograph, &plot::replace_spectrograph);
-    disconnect(dvbt2->fc_demod, &fc_symbol::replace_constelation,
+    disconnect(&dvbt2->fc_demod, &fc_symbol::replace_constelation,
             fc_constelation, &plot::replace_constelation);
     disconnect(dvbt2->deinterleaver, &time_deinterleaver::replace_constelation,
             qam_constelation, &plot::replace_constelation);
-    disconnect(dvbt2->p1_demodulator, &p1_symbol::replace_oscilloscope,
+    disconnect(&dvbt2->p1_demodulator, &p1_symbol::replace_oscilloscope,
             p1_correlation_oscilloscope, &plot::replace_oscilloscope);
-    disconnect(dvbt2->p2_demodulator, &p2_symbol::replace_oscilloscope,
+    disconnect(&dvbt2->p2_demodulator, &p2_symbol::replace_oscilloscope,
             p2_equalizer_oscilloscope, &plot::replace_oscilloscope);
     disconnect(dvbt2, &dvbt2_demodulator::replace_null_indicator,
             frequency_offset, &plot::replace_null_indicator);
@@ -706,13 +706,13 @@ void main_window::set_show_p2_symbol(int _id)
 {
     switch(_id){
     case 0:
-        dvbt2->p2_demodulator->id_show = p2_symbol::p2_l1_pre;
+        dvbt2->p2_demodulator.id_show = p2_symbol::p2_l1_pre;
         break;
     case 1:
-        dvbt2->p2_demodulator->id_show = p2_symbol::p2_l1_post;
+        dvbt2->p2_demodulator.id_show = p2_symbol::p2_l1_post;
         break;
     case 2:
-        dvbt2->p2_demodulator->id_show = p2_symbol::p2_data;
+        dvbt2->p2_demodulator.id_show = p2_symbol::p2_data;
         break;
     }
 }

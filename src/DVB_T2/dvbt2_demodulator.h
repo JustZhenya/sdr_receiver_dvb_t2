@@ -62,10 +62,10 @@ public:
     ~dvbt2_demodulator();
 
     QMutex* mutex;
-    p1_symbol* p1_demodulator;
-    p2_symbol* p2_demodulator;
-    data_symbol* data_demodulator;
-    fc_symbol* fc_demod;
+    p1_symbol p1_demodulator{};
+    p2_symbol p2_demodulator{};
+    data_symbol data_demodulator{};
+    fc_symbol fc_demod{};
     time_deinterleaver* deinterleaver = nullptr;
 
 signals:
@@ -143,7 +143,7 @@ private:
     complex* in_fft = nullptr;
     complex* ofdm_cell;
     pilot_generator* pilot;
-    address_freq_deinterleaver* fq_deinterleaver;
+    address_freq_deinterleaver fq_deinterleaver{};
     int next_symbol_type = SYMBOL_TYPE_P1;
     bool demodulator_init = false;
     bool deint_start = false;

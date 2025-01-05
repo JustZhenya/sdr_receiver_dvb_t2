@@ -20,6 +20,8 @@
 #include <QWaitCondition>
 #include <QMutex>
 #include <complex>
+#include <vector>
+#include <array>
 
 #include "dvbt2_definition.h"
 #include "ldpc_decoder.h"
@@ -52,10 +54,12 @@ private:
     QMutex* mutex_in;
     QMutex* mutex_out;
     l1_postsignalling l1_post;
-    int8_t* buffer_a = nullptr;
-    int8_t* buffer_b = nullptr;
+    std::vector<int8_t> buffer_a{};
+    std::vector<int8_t> buffer_b{};
     bool swap_buffer_start = true;
     bool swap_buffer = true;
+    int blocks{0};
+    int8_t* out{nullptr};
     complex derotate_qpsk;
     complex derotate_qam16;
     complex derotate_qam64;
@@ -77,16 +81,16 @@ private:
     const int demux_256_fec_size_normal_3_5[16] = {4, 6, 0, 2, 3, 14, 12, 10, 7, 5, 8, 1, 15, 9, 11, 13};
     const int demux_256_fec_size_normal_2_3[16] = {3, 15, 1, 7, 4, 11, 5, 0, 12, 2, 9, 14, 13, 6, 8, 10};
 
-    int* address_qam16_fecshort;
-    int* address_qam16_fecnormal;
-    int* address_qam16_fecnormal_3_5;
-    int* address_qam64_fecshort;
-    int* address_qam64_fecnormal;
-    int* address_qam64_fecnormal_3_5;
-    int* address_qam256_fecshort;
-    int* address_qam256_fecnormal;
-    int* address_qam256_fecnormal_3_5;
-    int* address_qam256_fecnormal_2_3;
+    std::array<int,FEC_SIZE_SHORT> address_qam16_fecshort;
+    std::array<int,FEC_SIZE_NORMAL> address_qam16_fecnormal;
+    std::array<int,FEC_SIZE_NORMAL> address_qam16_fecnormal_3_5;
+    std::array<int,FEC_SIZE_SHORT> address_qam64_fecshort;
+    std::array<int,FEC_SIZE_NORMAL> address_qam64_fecnormal;
+    std::array<int,FEC_SIZE_NORMAL> address_qam64_fecnormal_3_5;
+    std::array<int,FEC_SIZE_SHORT> address_qam256_fecshort;
+    std::array<int,FEC_SIZE_NORMAL> address_qam256_fecnormal;
+    std::array<int,FEC_SIZE_NORMAL> address_qam256_fecnormal_3_5;
+    std::array<int,FEC_SIZE_NORMAL> address_qam256_fecnormal_2_3;
 
     void address_generator(int _column, int _row, int *_address, const int *_tc, const int *_demux);
 
