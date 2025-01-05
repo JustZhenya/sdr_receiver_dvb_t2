@@ -19,6 +19,7 @@
 #include <QThread>
 #include <QMutex>
 #include <QMetaType>
+#include <vector>
 
 #include "DSP/interpolator_farrow.hh"
 #include "DSP/filter_decimator.h"
@@ -120,16 +121,16 @@ private:
     double sample_rate_est_filtered = 0.0;
     float old_sample_rate_est = 0.0f;
 
-    complex* out_derotate_sample;
+    std::vector<complex> out_derotate_sample;
     constexpr static uint upsample = DECIMATION_STEP;
     float sample_rate;
     double resample;
     double max_resample;
 
-    complex* out_interpolator;
-    complex* out_decimator;
-    interpolator_farrow<complex, float> interpolator;
-    filter_decimator* decimator;
+    complex* out_interpolator{};
+    std::vector<complex> out_decimator{};
+    interpolator_farrow<complex, float> interpolator{};
+    filter_decimator decimator{};
 
     dvbt2_parameters dvbt2;
     bool p2_init = false;
@@ -138,11 +139,11 @@ private:
 
     int symbol_size = P1_LEN;
     int idx_buffer_sym = 0;
-    complex* buffer_sym = nullptr;
-    fast_fourier_transform* fft;
+    std::vector<complex> buffer_sym{};
+    fast_fourier_transform fft{};
     complex* in_fft = nullptr;
     complex* ofdm_cell;
-    pilot_generator* pilot;
+    pilot_generator pilot{};
     address_freq_deinterleaver fq_deinterleaver{};
     int next_symbol_type = SYMBOL_TYPE_P1;
     bool demodulator_init = false;

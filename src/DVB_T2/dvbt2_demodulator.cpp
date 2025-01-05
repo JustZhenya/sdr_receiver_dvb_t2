@@ -67,18 +67,13 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
     max_resample = resample + resample * 1.0e-4;// for 100ppm
     uint len_max = (max_len_symbol + P1_LEN) * max_resample * upsample;
 
-    decimator = new filter_decimator;
     out_interpolator = static_cast<complex*>(_mm_malloc(sizeof(complex) * len_max * upsample, 32));
-    out_decimator = new complex[len_max];
-    out_derotate_sample = new complex[len_max];
-    buffer_sym = new complex[max_len_symbol];
+    out_decimator.resize(len_max);
+    out_derotate_sample.resize(len_max);
+    buffer_sym.resize(max_len_symbol);
     for(uint i = 0; i < max_len_symbol; ++i) {
         buffer_sym[i] = {0.0f, 0.0f};
     }
-    //__Fast Fourier Transform__
-    fft = new fast_fourier_transform;
-    //pilot generator
-    pilot = new pilot_generator();
     //time deinterleaver and removal of cyclic Q-delay
     mutex_out = new QMutex;
     signal_out = new QWaitCondition;
@@ -100,10 +95,6 @@ dvbt2_demodulator::~dvbt2_demodulator()
 {   
     emit stop_deinterleaver();
     if(thread->isRunning()) thread->wait(1000);
-    delete fft;
-    delete [] out_derotate_sample;
-    delete [] out_decimator;
-    delete [] buffer_sym;
     _mm_free (out_interpolator);
 }
 //-------------------------------------------------------------------------------------------
@@ -130,9 +121,9 @@ void dvbt2_demodulator::init_dvbt2()
     dvbt2.bandwidth = BANDWIDTH_8_0_MHZ;
     dvbt2.miso_group = MISO_TX1;//?
     dvbt2_p2_parameters_init(dvbt2);
-    in_fft = fft->init(dvbt2.fft_size);
+    in_fft = fft.init(dvbt2.fft_size);
     fq_deinterleaver.init(dvbt2);
-    p2_demodulator.init(dvbt2, pilot, &fq_deinterleaver);
+    p2_demodulator.init(dvbt2, &pilot, &fq_deinterleaver);
     // for start;
     dvbt2.guard_interval_size = dvbt2.fft_size / 4;
     symbol_size = dvbt2.fft_size + dvbt2.guard_interval_size;
@@ -214,13 +205,13 @@ void dvbt2_demodulator::execute(int _len_in, int16_t* _i_in, int16_t* _q_in, sig
 
         //___timing synchronization___
         int len_out_interpolator;
-        interpolator(chunk, out_derotate_sample, arbitrary_resample,
-                     len_out_interpolator, out_interpolator);
+        interpolator(chunk, &out_derotate_sample[0], arbitrary_resample,
+                     len_out_interpolator, &out_interpolator[0]);
         int len_out_decimator;
-        decimator->execute(len_out_interpolator, out_interpolator, len_out_decimator, out_decimator);
+        decimator.execute(len_out_interpolator, &out_interpolator[0], len_out_decimator, &out_decimator[0]);
 
         //___demodulations and get offset synchronization__
-        symbol_acquisition(len_out_decimator, out_decimator, signal_);
+        symbol_acquisition(len_out_decimator, &out_decimator[0], signal_);
 
     }
     //___IQ imbalance estimations___
@@ -280,7 +271,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
 
             bool p1_decoded = false;
             if(p1_demodulator.execute(signal_->gain_changed, level_detect, len_in, in, consume,
-                                 buffer_sym, idx_buffer_sym, dvbt2, signal_->coarse_freq_offset,
+                                 &buffer_sym[0], idx_buffer_sym, dvbt2, signal_->coarse_freq_offset,
                                  p1_decoded, signal_->p1_reset)) {
                 if(p2_init){
                     next_symbol_type = SYMBOL_TYPE_P2;
@@ -312,13 +303,13 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
         uint len_in_sym = len_in - consume;
         uint len_out_sym = symbol_size - idx_buffer_sym;
         uint len_cpy_sym = len_out_sym > len_in_sym ? len_in_sym : len_out_sym;
-        memcpy(buffer_sym + idx_buffer_sym, in + consume, sizeof(complex) * len_cpy_sym);
+        memcpy(&buffer_sym[idx_buffer_sym], in + consume, sizeof(complex) * len_cpy_sym);
         consume += len_cpy_sym;
         idx_buffer_sym += len_cpy_sym;
         if(idx_buffer_sym == symbol_size) {
             idx_buffer_sym = 0;
             if(crc32_l1_pre) {
-                complex* cp = buffer_sym + dvbt2.fft_size;
+                complex* cp = &buffer_sym[dvbt2.fft_size];
                 complex sum = {0.0f, 0.0f};
                 for (int i = 4; i < dvbt2.guard_interval_size - 4; ++i){
                     sum += (cp[i] * conj(buffer_sym[i]));
@@ -328,9 +319,9 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                 frequency_est_filtered += loop_filter_frequency_offset(frequency_est, max_integral);
             }
 
-            memcpy(in_fft, buffer_sym + dvbt2.guard_interval_size,
+            memcpy(in_fft, &buffer_sym[dvbt2.guard_interval_size],
                    sizeof(complex) * static_cast<uint>(dvbt2.fft_size));
-            ofdm_cell = fft->execute();
+            ofdm_cell = fft.execute();
 
             est_chunk = 0;
         }
@@ -396,11 +387,11 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                 }
                 else {
                     set_guard_interval();
-                    data_demodulator.init(dvbt2, pilot, &fq_deinterleaver);
+                    data_demodulator.init(dvbt2, &pilot, &fq_deinterleaver);
                     end_data_symbol = dvbt2.len_frame - dvbt2.l_fc;
                     if(dvbt2.l_fc) {
                         frame_closing_symbol = true;
-                        fc_demod.init(dvbt2, pilot, &fq_deinterleaver);
+                        fc_demod.init(dvbt2, &pilot, &fq_deinterleaver);
                     }
                     else {
                         frame_closing_symbol = false;
