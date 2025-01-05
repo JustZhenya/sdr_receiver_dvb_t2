@@ -75,8 +75,7 @@ class save_buffer
 {
 private:
     static constexpr int len = LEN;
-    T buffer[LEN];
-    T temp[LEN];
+    T buffer[LEN*2];
     int idx = 0;
 
 public:
@@ -84,21 +83,19 @@ public:
 
     void write(T &_in)
     {
-        buffer[idx++] = _in;
+        buffer[idx] = _in;
+        buffer[idx+len] = _in;
+        idx++;
         idx = idx % len;
     }
 
     T* read()
     {
-        const int len_copy = len - idx;
-        memcpy(temp, buffer + idx, sizeof(T) * static_cast<unsigned int>(len_copy));
-        memmove(buffer + len_copy, buffer, sizeof(T) * static_cast<unsigned int>(idx));
-        memcpy(buffer, temp, sizeof(T) * static_cast<unsigned int>(len_copy));
-        return buffer;
+        return &buffer[idx];
     }
     void reset(){
         idx = 0;
-        memset(buffer, 0, sizeof(T) * static_cast<unsigned int>(len));
+        memset(buffer, 0, sizeof(T) * static_cast<unsigned int>(len*2));
     }
 };
 
