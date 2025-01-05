@@ -60,7 +60,7 @@ void p2_symbol::init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
     half_total = k_total / 2;
     left_nulls = _dvbt2.l_nulls;
     _pilot->p2_generator(_dvbt2);
-    p2_carrier_map = _pilot->p2_carrier_map;
+    p2_carrier_map = _pilot->p2_carrier_map.data();
     p2_pilot_refer = _pilot->p2_pilot_refer;
     _address->p2_address_freq_deinterleaver(_dvbt2);
     h_even_p2 = _address->h_even_p2;
@@ -109,7 +109,7 @@ complex* p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_id
     complex sum_pilot_2 = {0.0f, 0.0f};
     int idx_symbol = _idx_symbol;
     int len_est = 0;
-    float* pilot_refer_idx_p2_symbol = p2_pilot_refer[idx_symbol];
+    float* pilot_refer_idx_p2_symbol = p2_pilot_refer[idx_symbol].data();
     float pilot_refer;
     float amp_pilot = amp_p2;
     complex cell;

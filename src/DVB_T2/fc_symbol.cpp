@@ -67,8 +67,8 @@ void fc_symbol::init(dvbt2_parameters _dvbt2, pilot_generator* _pilot,
     n_fc = _dvbt2.n_fc;
     c_fc = _dvbt2.c_fc;
     left_nulls = _dvbt2.l_nulls;
-    fc_carrier_map = pilot->fc_carrier_map;
-    fc_pilot_refer = pilot->fc_pilot_refer;
+    fc_carrier_map = pilot->fc_carrier_map.data();
+    fc_pilot_refer = pilot->fc_pilot_refer.data();
     h_even_fc = address->h_even_fc;
     h_odd_fc = address->h_odd_fc;
     deinterleaved_cell = new complex[n_fc];

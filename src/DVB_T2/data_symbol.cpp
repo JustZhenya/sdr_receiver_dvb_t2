@@ -126,9 +126,9 @@ complex* data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
     int idx_symbol = _idx_symbol;
     int idx_data_symbol = idx_symbol - n_p2;
     int len_show = 0;
-    float* pilot_refer_idx_data_symbol = data_pilot_refer[idx_data_symbol];
+    float* pilot_refer_idx_data_symbol = data_pilot_refer[idx_data_symbol].data();
     float pilot_refer;
-    int* map = data_carrier_map[idx_data_symbol];
+    int* map = data_carrier_map[idx_data_symbol].data();
     float amp_pilot = amp_sp;
     complex cell;
     complex old_cell = {0.0, 0.0};

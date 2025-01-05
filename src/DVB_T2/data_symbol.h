@@ -49,8 +49,8 @@ private:
     int half_total;
     int n_p2;
     int left_nulls;
-    int** data_carrier_map = nullptr;
-    float** data_pilot_refer = nullptr;
+    std::vector<std::vector<int>> data_carrier_map;
+    std::vector<std::vector<float>> data_pilot_refer;
     float amp_cp;
     float amp_sp;
     float cor_amp_cp;

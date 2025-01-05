@@ -67,7 +67,7 @@ private:
     int k_total;
     int half_total;
     int left_nulls;
-    float** p2_pilot_refer;
+    std::vector<std::vector<float>> p2_pilot_refer;
     complex buffer_cell[14];
     complex* deinterleaved_cell = nullptr;
     int* h_even_p2;
