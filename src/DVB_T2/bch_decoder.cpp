@@ -73,8 +73,8 @@ void bch_decoder::execute(int *_idx_plp_simd, l1_postsignalling _l1_post, int _l
     l1_postsignalling l1_post = _l1_post;
     int len_in = _len_in;
     uint8_t* in = _in;
-    int k_bch;
-    int n_bch;
+    int k_bch=0;
+    int n_bch=0;
     dvbt2_fectype_t fec_type = static_cast<dvbt2_fectype_t>(l1_post.plp[plp_id[0]].plp_fec_type);
     dvbt2_code_rate_t code_rate = static_cast<dvbt2_code_rate_t>(l1_post.plp[plp_id[0]].plp_cod);
     if(fec_type == FEC_FRAME_NORMAL){
