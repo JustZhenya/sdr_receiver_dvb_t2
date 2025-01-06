@@ -83,7 +83,7 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
     deinterleaver->moveToThread(thread);
     connect(this, &dvbt2_demodulator::data, deinterleaver, &time_deinterleaver::execute);
     connect(this, &dvbt2_demodulator::l1_dyn_execute, deinterleaver, &time_deinterleaver::l1_dyn_execute);
-    connect(this, &dvbt2_demodulator::stop_deinterleaver, deinterleaver, &time_deinterleaver::stop_qam);
+    connect(this, &dvbt2_demodulator::stop_deinterleaver, deinterleaver, &time_deinterleaver::stop);
     connect(deinterleaver, &time_deinterleaver::finished, deinterleaver, &time_deinterleaver::deleteLater);
     connect(deinterleaver, &time_deinterleaver::finished, thread, &QThread::quit, Qt::DirectConnection);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
@@ -93,6 +93,7 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
 //-------------------------------------------------------------------------------------------
 dvbt2_demodulator::~dvbt2_demodulator()
 {   
+    deinterleaver->fifo.reset();
     emit stop_deinterleaver();
     if(thread->isRunning()) thread->wait(1000);
     _mm_free (out_interpolator);
