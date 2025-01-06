@@ -127,22 +127,20 @@ ldpc_decoder::~ldpc_decoder()
     if(thread->isRunning()) thread->wait(1000);
 }
 //------------------------------------------------------------------------------------------
-void ldpc_decoder::execute(int* _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, int8_t* _in)
+void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, fec_frame _in)
 {
-    mutex_in->lock();
-    signal_in->wakeOne();
 
 //    if(_idx_plp_simd[0]==0){
 //        mutex_in->unlock();
 //        return;
 //    }
 
-    int* plp_id = _idx_plp_simd;
+    int* plp_id = &_idx_plp_simd[0];
     l1_postsignalling l1_post = _l1_post;
-    int8_t* in = _in;
+    int8_t* in = &_in[0];
     int len_in = _len_in;
-    int k_ldpc;
-    int q_ldpc;
+    int k_ldpc=0;
+    int q_ldpc=0;
     dvbt2_fectype_t fec_type = static_cast<dvbt2_fectype_t>(l1_post.plp[plp_id[0]].plp_fec_type);
     dvbt2_code_rate_t code_rate = static_cast<dvbt2_code_rate_t>(l1_post.plp[plp_id[0]].plp_cod);
     int fec_size;
@@ -269,8 +267,6 @@ void ldpc_decoder::execute(int* _idx_plp_simd, l1_postsignalling _l1_post, int _
         mutex_out->unlock();
         bch_fec = buffer_a.data();
     }
-
-    mutex_in->unlock();
 }
 //------------------------------------------------------------------------------------------
 void ldpc_decoder::stop()

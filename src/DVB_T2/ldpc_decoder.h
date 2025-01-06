@@ -20,6 +20,7 @@
 #include <QWaitCondition>
 #include <QMutex>
 #include <vector>
+#include <QMetaType>
 
 #include "dvbt2_definition.h"
 #include "bch_decoder.h"
@@ -73,6 +74,12 @@ const int TRIALS = 25;//25
 //typedef LambdaMinAlgorithm<simd_type, update_type, 3> algorithm_type;
 //typedef SumProductAlgorithm<simd_type, update_type> algorithm_type;
 
+typedef std::array<int8_t,FEC_SIZE_NORMAL * SIZEOF_SIMD> fec_frame;
+typedef std::array<int,SIZEOF_SIMD> idx_plp_simd_t;
+
+Q_DECLARE_METATYPE(fec_frame)
+Q_DECLARE_METATYPE(idx_plp_simd_t)
+
 class ldpc_decoder : public QObject
 {
     Q_OBJECT
@@ -88,7 +95,7 @@ signals:
     void finished();
 
 public slots:
-    void execute(int* _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, int8_t *_in);
+    void execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, fec_frame _in);
     void stop();
 
 private:

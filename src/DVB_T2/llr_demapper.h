@@ -38,7 +38,7 @@ public:
 
 signals:
     void signal_noise_ratio(float _snr);
-    void soft_multiplexer_de_twist(int* _idx_plp_simd, l1_postsignalling _l1_post, int _len_out, int8_t* _out);
+    void soft_multiplexer_de_twist(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _len_out, fec_frame _out);
     void stop_decoder();
     void finished();
 
@@ -54,8 +54,8 @@ private:
     QMutex* mutex_in;
     QMutex* mutex_out;
     l1_postsignalling l1_post;
-    std::vector<int8_t> buffer_a{};
-    std::vector<int8_t> buffer_b{};
+    fec_frame buffer_a{};
+    fec_frame buffer_b{};
     bool swap_buffer_start = true;
     bool swap_buffer = true;
     int blocks{0};
