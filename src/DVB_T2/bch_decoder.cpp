@@ -30,6 +30,7 @@ bch_decoder::bch_decoder(QWaitCondition *_signal_in, QMutex *_mutex_in, QObject 
     signal_out = new QWaitCondition;
     deheader = new bb_de_header(signal_out, mutex_out);
     thread = new QThread;
+    thread->setObjectName("bb_de_header");
     deheader->moveToThread(thread);
     connect(this, &bch_decoder::bit_descramble, deheader, &bb_de_header::execute);
     connect(this, &bch_decoder::stop_deheader, deheader, &bb_de_header::stop);
