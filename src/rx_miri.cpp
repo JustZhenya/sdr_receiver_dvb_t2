@@ -87,6 +87,7 @@ int rx_miri::init(double _rf_frequency, int _gain_db)
     max_len_out = len_out_device * max_blocks;
     buffer_a.resize(max_len_out);
     buffer_b.resize(max_len_out);
+    conv.init(2, 1.0f / (1 << 15), 0.03f, 0.01f);
 
     demodulator = new dvbt2_demodulator(id_miri, sample_rate);
     thread = new QThread;
@@ -124,6 +125,7 @@ void rx_miri::reset()
     blocks = 1;
     set_rf_frequency();
     set_gain(true);
+    conv.reset();
 
     qDebug() << "rx_miri::reset";
 }
@@ -198,10 +200,10 @@ void rx_miri::rx_execute(void *in_ptr, int nsamples)
     int16_t * ptr = (int16_t*)in_ptr;
     if(!done)
         return;
-    for(int i = 0; i < nsamples; ++i)
-        ptr_buffer[i] = ptr[i];
+    float level_detect=std::numeric_limits<float>::max();
+    conv.execute(0,nsamples / 2, &ptr[0], &ptr[1],ptr_buffer,level_detect,*signal);
     len_buffer += nsamples / 2;
-    ptr_buffer += nsamples;
+    ptr_buffer += nsamples / 2;
 
     if(demodulator->mutex->try_lock()) {
 
@@ -222,11 +224,11 @@ void rx_miri::rx_execute(void *in_ptr, int nsamples)
         #endif
 
         if(swap_buffer) {
-            emit execute(len_buffer, &buffer_a[0], &buffer_a[1], signal);
+            emit execute(len_buffer, &buffer_a[0], level_detect, signal);
             ptr_buffer = buffer_b.data();
         }
         else {
-            emit execute(len_buffer, &buffer_b[0], &buffer_b[1], signal);
+            emit execute(len_buffer, &buffer_b[0], level_detect, signal);
             ptr_buffer = buffer_a.data();
         }
         swap_buffer = !swap_buffer;

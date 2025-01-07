@@ -21,6 +21,7 @@
 #include <QTime>
 #include <QApplication>
 #include <string>
+#include <vector>
 
 #include "sdrplay/mir_sdr.h"
 #include "DVB_T2/dvbt2_demodulator.h"
@@ -67,14 +68,16 @@ private:
     int max_len_out;
     int len_buffer;
     int  blocks;
-    short *i_buffer_a, *q_buffer_a;
-    short *i_buffer_b, *q_buffer_b;
-    short* ptr_i_bubber;
-    short* ptr_q_buffer;
+    std::vector<int16_t> i_buffer;
+    std::vector<int16_t> q_buffer;
+    std::vector<complex> buffer_a;
+    std::vector<complex> buffer_b;
+    complex* ptr_buffer;
     bool swap_buffer = true;
     bool agc = false;
     bool done = true;
     int gain_offset = 0;
+    convert_iq<int16_t> conv{};
 
     void reset();
     void set_rf_frequency();

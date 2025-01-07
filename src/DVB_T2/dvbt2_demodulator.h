@@ -54,6 +54,85 @@ struct signal_estimate{
     bool p1_reset = false;
 };
 
+template<typename T> struct convert_iq
+{
+    void init(int _convert_input, float _scale, float _max, float _min)
+    {
+        convert_input = _convert_input;
+        short_to_float = _scale;
+        level_max = _max;
+        level_min = _min;
+    }
+    void execute(int idx_in, int _len_in, T* _i_in, T* _q_in, complex * out, float & level_detect, signal_estimate & signal_)
+    {
+        float real, imag;
+
+        int j = 0;
+        for(int i = 0; i < _len_in; ++i) {
+            j = (i + idx_in) * convert_input;
+            real = _i_in[j] * short_to_float;
+            imag = _q_in[j] * short_to_float;
+            //___DC offset remove____________
+            real -= exp_avg_dc_real(real);
+            imag -= exp_avg_dc_imag(imag);
+            //___IQ imbalance remove_________
+            est_1_bit_quantization(real, imag);
+            real *= c2;
+            imag += c1 * real;
+            out[i]=complex(real,imag);
+            //_____________________________
+        }
+        //___IQ imbalance estimations___
+        c1 = -theta1 / theta2;
+        float c_temp = theta3 / theta2;
+        c2 = sqrtf(c_temp * c_temp - c1 * c1);
+        //___level gain estimation___
+        level_detect = theta2 * theta3;
+        if(signal_.gain_changed) {
+            if(level_detect < level_min) {
+                signal_.gain_offset = 1;
+                signal_.change_gain = true;
+            }
+            else if(level_detect > level_max) {
+                signal_.gain_offset = -1;
+                signal_.change_gain = true;
+            }
+            else {
+                signal_.gain_offset = 0;
+                signal_.change_gain = false;
+            }
+        }
+    }
+    void reset()
+    {
+        exp_avg_dc_real.reset();
+        exp_avg_dc_imag.reset();
+    }
+private:
+    int convert_input = 1;
+    float short_to_float = 1.0f/32768.0f;
+    static constexpr float dc_ratio = 1.0e-6f;//1.0e-5f
+    exponential_averager<float, float, dc_ratio> exp_avg_dc_real;
+    exponential_averager<float, float, dc_ratio> exp_avg_dc_imag;
+
+    float c1 = 0.0f;
+    float c2 = 1.0f;
+    float level_max=0.4f;
+    float level_min=0.2f;
+    float theta1 = 0.0f, theta2 = 0.0f, theta3 = 0.0f;
+    const float theta_alfa = 0.00001f;
+    inline void est_1_bit_quantization(float _real, float _imag)
+    {
+        float sgn;
+        sgn = _real < 0 ? -1.0f : 1.0f;
+        theta1 += (_imag * sgn - theta1)*theta_alfa;
+        theta2 += (_real * sgn - theta2)*theta_alfa;
+        sgn = _imag < 0 ? -1.0f : 1.0f;
+        theta3 += (_imag * sgn -theta3)*theta_alfa;
+    }
+
+};
+
 class dvbt2_demodulator : public QObject
 {
     Q_OBJECT
@@ -78,7 +157,7 @@ signals:
     void finished();
 
 public slots:
-    void execute(int _len_in, int16_t* _i_in, int16_t* _q_in, signal_estimate* signal_);
+    void execute(int _len_in, complex* _q_in, float _level_estimate, signal_estimate* signal_);
     void stop();
 
 private:
@@ -87,21 +166,10 @@ private:
     QWaitCondition* signal_out;
 
     id_device_t id_device;
-    int convert_input = 1;
-    float short_to_float;
 
     int remain = 0;
     int chunk = 0;
     int est_chunk = 0;
-
-    static constexpr float dc_ratio = 1.0e-6f;//1.0e-5f
-    exponential_averager<float, float, dc_ratio> exp_avg_dc_real;
-    exponential_averager<float, float, dc_ratio> exp_avg_dc_imag;
-
-    float c1 = 0.0f;
-    float c2 = 1.0f;
-    inline void est_1_bit_quantization(float _real, float _imag,
-                                       float &_theta1, float &_theta2, float &_theta3);
 
     constexpr static int samplerate_hz = SAMPLE_RATE;
 
@@ -161,13 +229,11 @@ private:
 
     bool change_gain = false;
     int gain_offset = 0;
-    float level_detect = std::numeric_limits<float>::max();
-    float level_max;
-    float level_min;
 
     void symbol_acquisition(int _len_in, complex* _in, signal_estimate *signal_);
     void set_guard_interval();
     void set_guard_interval_by_brute_force ();
+    float level_detect = std::numeric_limits<float>::max();
 
 };
 

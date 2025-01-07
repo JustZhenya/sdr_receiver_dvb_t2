@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QTimer>
 #include <string>
+#include <vector>
 
 #include "libairspy/src/airspy.h"
 #include "DVB_T2/dvbt2_demodulator.h"
@@ -22,7 +23,7 @@ public:
     void rx_execute(int16_t *_ptr_rx_buffer, int _len_out_device);
 
 signals:
-    void execute(int _len_in, int16_t* _i_in, int16_t* _q_in, signal_estimate* signal_);
+    void execute(int _len_in, complex* _in, float _level_estimate, signal_estimate* signal_);
     void status(int _err);
     void radio_frequency(double _rf);
     void level_gain(int _gain);
@@ -44,9 +45,9 @@ private:
     float sample_rate;
     bool agc = false;
 
-    int16_t* buffer_a;
-    int16_t* buffer_b;
-    int16_t* ptr_buffer;
+    std::vector<complex> buffer_a{};
+    std::vector<complex> buffer_b{};
+    complex* ptr_buffer;
     int  blocks = 1;
     const int max_blocks = 256 * 4;
     int len_buffer = 0;
@@ -66,6 +67,7 @@ private:
     bool gain_changed = true;
     clock_t start_wait_gain_changed;
     clock_t end_wait_gain_changed;
+    convert_iq<int16_t> conv{};
 
     void reset();
     void set_rf_frequency();

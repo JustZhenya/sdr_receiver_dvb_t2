@@ -36,7 +36,7 @@ public:
     dvbt2_demodulator* demodulator;
 
 signals:
-    void execute(int _len_in, short* _i_in, short* _q_in, signal_estimate* signal_);
+    void execute(int _len_in, complex* _in, float _level_estimate, signal_estimate* signal_);
     void status(int _err);
     void radio_frequency(double _rf);
     void level_gain(int _gain);
@@ -66,9 +66,9 @@ private:
     float sample_rate;
     int max_len_out;
 
-    int16_t* buffer_a;
-    int16_t* buffer_b;
-    int16_t* ptr_buffer;
+    std::vector<complex> buffer_a;
+    std::vector<complex> buffer_b;
+    complex* ptr_buffer;
     int  blocks = 1;
     const int len_out_device = 128*1024;
     const int max_blocks = 256 * 4;
@@ -90,13 +90,7 @@ private:
     
     hackrf_device *_dev;
     int err;
-//    float sample_rate;
-//    const int len_out_device = 128*1024;
-//    const int max_blocks = 24576 * 2;//12288;//768
-//    const int max_blocks = 2048;//12288;//768
-//    int blocks = 1;
-//    int max_len_out = 0;
-//    int len_buffer = 0;
+    convert_iq<int8_t> conv{};
 
     void reset();
 };

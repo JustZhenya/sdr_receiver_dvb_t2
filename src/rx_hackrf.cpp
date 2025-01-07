@@ -19,10 +19,9 @@
 #include <QMutex>
 
 //----------------------------------------------------------------------------------------------------------------------------
-rx_hackrf::rx_hackrf(QObject *parent) : QObject(parent),
-buffer_a(nullptr),
-buffer_b(nullptr)
+rx_hackrf::rx_hackrf(QObject *parent) : QObject(parent)
 {
+    conv.init(2, 1.0f / (1 << 7), 0.04f, 0.01f);
     hackrf_init(); /* call only once before the first open */
     fprintf(stderr,"rx_hackrf::rx_hackrf\n");
 
@@ -31,11 +30,6 @@ buffer_b(nullptr)
 rx_hackrf::~rx_hackrf()
 {
     hackrf_exit(); /* call only once after last close */
-    if(buffer_a)
-    {
-        delete buffer_a;
-        delete buffer_b;
-    }
     fprintf(stderr,"rx_hackrf::~rx_hackrf\n");
 }
 //-------------------------------------------------------------------------------------------
@@ -139,8 +133,8 @@ int rx_hackrf::init(double _rf_frequency, int _gain_db)
     if(ret != 0) return ret;
 
     max_len_out = len_out_device * max_blocks;
-    buffer_a = new short[max_len_out];
-    buffer_b = new short[max_len_out];
+    buffer_a.resize(max_len_out);
+    buffer_b.resize(max_len_out);
 
     demodulator = new dvbt2_demodulator(id_hackrf, sample_rate);
     thread = new QThread;
@@ -172,12 +166,13 @@ void rx_hackrf::reset()
     }
     signal->gain_offset = 0;
     signal->change_gain = true;
-    ptr_buffer = buffer_a;
+    ptr_buffer = &buffer_a[0];
     swap_buffer = true;
     len_buffer = 0;
     blocks = 1;
     set_rf_frequency();
     set_gain(true);
+    conv.reset();
 
     qDebug() << "rx_hackrf::reset";
 }
@@ -198,7 +193,7 @@ void rx_hackrf::set_rf_frequency()
         signal->change_frequency = false;
         frequency_changed = false;
         signal->frequency_changed = false;
-        signal->correct_resample = signal->coarse_freq_offset / rf_frequency;
+        //signal->correct_resample = signal->coarse_freq_offset / rf_frequency;
         rf_frequency += signal->coarse_freq_offset;
         int err=hackrf_set_freq( _dev, uint64_t(rf_frequency) );
         if(err != 0) {
@@ -217,7 +212,7 @@ void rx_hackrf::set_gain(bool force)
         end_wait_gain_changed = clock();
         float mseconds = (end_wait_gain_changed - start_wait_gain_changed) /
                          (CLOCKS_PER_SEC / 1000);
-        if(mseconds > 10) {
+        if(mseconds > 20) {
             signal->gain_changed = true;
             emit level_gain(gain_db);
         }
@@ -293,10 +288,10 @@ int rx_hackrf::callback(hackrf_transfer* transfer)
 void rx_hackrf::rx_execute(void *in_ptr, int nsamples)
 {
     int8_t * ptr = (int8_t*)in_ptr;
-    for(int i = 0; i < nsamples; ++i)
-        ptr_buffer[i] = ptr[i];
+    float level_detect=std::numeric_limits<float>::max();
+    conv.execute(0,nsamples / 2, &ptr[0], &ptr[1], ptr_buffer, level_detect,*signal);
     len_buffer += nsamples / 2;
-    ptr_buffer += nsamples;
+    ptr_buffer += nsamples / 2;
 
     if(demodulator->mutex->try_lock()) {
 
@@ -317,12 +312,12 @@ void rx_hackrf::rx_execute(void *in_ptr, int nsamples)
         #endif
 
         if(swap_buffer) {
-            emit execute(len_buffer, &buffer_a[0], &buffer_a[1], signal);
-            ptr_buffer = buffer_b;
+            emit execute(len_buffer, &buffer_a[0], level_detect, signal);
+            ptr_buffer = buffer_b.data();
         }
         else {
-            emit execute(len_buffer, &buffer_b[0], &buffer_b[1], signal);
-            ptr_buffer = buffer_a;
+            emit execute(len_buffer, &buffer_b[0], level_detect, signal);
+            ptr_buffer = buffer_a.data();
         }
         swap_buffer = !swap_buffer;
         len_buffer = 0;
@@ -337,10 +332,10 @@ void rx_hackrf::rx_execute(void *in_ptr, int nsamples)
             blocks = 1;
             len_buffer = 0;
             if(swap_buffer) {
-                ptr_buffer = buffer_a;
+                ptr_buffer = buffer_a.data();
             }
             else {
-                ptr_buffer = buffer_b;
+                ptr_buffer = buffer_b.data();
             }
         }
     }
@@ -350,7 +345,7 @@ void rx_hackrf::start()
 {
     reset();
     int err;
-    ptr_buffer = buffer_a;
+    ptr_buffer = &buffer_a[0];
     err = hackrf_start_rx(_dev, callback, (void*) this);
     len_buffer = 0;
     fprintf(stderr, "hackrf start rx %d\n", err);

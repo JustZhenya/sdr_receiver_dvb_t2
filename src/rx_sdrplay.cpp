@@ -22,13 +22,14 @@
 
 //-------------------------------------------------------------------------------------------
 rx_sdrplay::rx_sdrplay(QObject *parent) : QObject(parent)
-{  
+{
+    conv.init(1, 1.0f / (1 << 14), 0.04f, 0.02f);
 
 }
 //-------------------------------------------------------------------------------------------
 rx_sdrplay::~rx_sdrplay()
 {
-
+    delete signal;
 }
 //-------------------------------------------------------------------------------------------
 std::string rx_sdrplay::error (int err)
@@ -112,10 +113,10 @@ mir_sdr_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
     if(err != 0) return err;
 
     max_len_out = len_out_device * max_blocks;
-    i_buffer_a = new short[max_len_out];
-    q_buffer_a = new short[max_len_out];
-    i_buffer_b = new short[max_len_out];
-    q_buffer_b = new short[max_len_out];
+    buffer_a.resize(max_len_out);
+    buffer_b.resize(max_len_out);
+    i_buffer.resize(len_out_device);
+    q_buffer.resize(len_out_device);
 
     demodulator = new dvbt2_demodulator(id_sdrplay, sample_rate);
     thread = new QThread;
@@ -154,6 +155,7 @@ void rx_sdrplay::reset()
     blocks = norm_blocks;;
     set_rf_frequency();
     set_gain();
+    conv.reset();
 
     qDebug() << "rx_sdrplay::reset";
 }
@@ -201,18 +203,18 @@ void rx_sdrplay::set_gain()
 //-------------------------------------------------------------------------------------------
 void rx_sdrplay::start()
 {
-    ptr_i_bubber = i_buffer_a;
-    ptr_q_buffer = q_buffer_a;
+    ptr_buffer = &buffer_a[0];
     unsigned int first_sample_num;
     int gr_changed = 0;
     int rf_changed = 0;
-    int fs_changed = 0;   
+    int fs_changed = 0;
+    float level_detect=std::numeric_limits<float>::max();
 
     while(done) {
 
         for(int n = 0; n < blocks; ++n) {
 
-            mir_sdr_ErrT err = mir_sdr_ReadPacket(ptr_i_bubber, ptr_q_buffer, &first_sample_num,
+            mir_sdr_ErrT err = mir_sdr_ReadPacket(&i_buffer[0], &q_buffer[0], &first_sample_num,
                                      &gr_changed, &rf_changed, &fs_changed);
             if(err != 0) {
                 emit status(err);
@@ -225,9 +227,9 @@ void rx_sdrplay::start()
                 gr_changed = 0;
                 gain_changed = true;
             }
+            conv.execute(0,len_out_device, &i_buffer, &q_buffer, ptr_buffer, level_detect, *signal);
             len_buffer += len_out_device;
-            ptr_i_bubber += len_out_device;
-            ptr_q_buffer += len_out_device;
+            ptr_buffer += len_out_device;
         }
 
         if(demodulator->mutex->try_lock()) {
@@ -246,14 +248,12 @@ void rx_sdrplay::start()
             set_gain();
 
             if(swap_buffer) {
-                emit execute(len_buffer, i_buffer_a, q_buffer_a, signal);
-                ptr_i_bubber = i_buffer_b;
-                ptr_q_buffer = q_buffer_b;
+                emit execute(len_buffer, &buffer_a[0], level_detect, signal);
+                ptr_buffer = buffer_b.data();
             }
             else {
-                emit execute(len_buffer, i_buffer_b, q_buffer_b, signal);
-                ptr_i_bubber = i_buffer_a;
-                ptr_q_buffer = q_buffer_a;
+                emit execute(len_buffer, &buffer_b[0], level_detect, signal);
+                ptr_buffer = buffer_a.data();
             }
             swap_buffer = !swap_buffer;
             len_buffer = 0;
@@ -271,12 +271,10 @@ void rx_sdrplay::start()
                 blocks = norm_blocks;;
                 fprintf(stderr, "reset buffer blocks: %d\n", blocks);
                 if(swap_buffer) {
-                    ptr_i_bubber = i_buffer_a;
-                    ptr_q_buffer = q_buffer_a;
+                    ptr_buffer = buffer_a.data();
                 }
                 else {
-                    ptr_i_bubber = i_buffer_b;
-                    ptr_q_buffer = q_buffer_b;
+                    ptr_buffer = buffer_b.data();
                 }
             }
         }
@@ -286,10 +284,6 @@ void rx_sdrplay::start()
     mir_sdr_ReleaseDeviceIdx();
     emit stop_demodulator();
     if(thread->isRunning()) thread->wait(1000);
-    delete [] i_buffer_a;
-    delete [] q_buffer_a;
-    delete [] i_buffer_b;
-    delete [] q_buffer_b;
     emit finished();
 }
 //-------------------------------------------------------------------------------------------

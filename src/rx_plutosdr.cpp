@@ -33,6 +33,7 @@
 //-------------------------------------------------------------------------------------------
 rx_plutosdr::rx_plutosdr(QObject *parent) : QObject(parent)
 {
+    conv.init(1, 1.0f / (1 << 11), 0.04f, 0.02f);
 
 }
 //-------------------------------------------------------------------------------------------
@@ -120,10 +121,8 @@ int rx_plutosdr::init(uint64_t _rf_frequence_hz, int _gain)
     err = plutosdr_bufstream_enable(device, 1);
     if(err < 0) return err;
 
-    i_buffer_a = new int16_t[max_len_out];
-    q_buffer_a = new int16_t[max_len_out];
-    i_buffer_b = new int16_t[max_len_out];
-    q_buffer_b = new int16_t[max_len_out];
+    buffer_a.resize(max_len_out);
+    buffer_b.resize(max_len_out);
 
     signal = new signal_estimate;
 
@@ -160,13 +159,13 @@ void rx_plutosdr::reset()
     }
     signal->gain_offset = 0;
     signal->change_gain = true;
-    ptr_i_buffer = i_buffer_a;
-    ptr_q_buffer = q_buffer_a;
+    ptr_buffer = &buffer_a[0];
     swap_buffer = true;
     len_buffer = 0;
     blocks = 1;
     set_rf_frequency();
     set_gain();
+    conv.reset();
 }
 //-------------------------------------------------------------------------------------------
 void rx_plutosdr::set_rf_frequency()
@@ -242,13 +241,10 @@ int rx_plutosdr::plutosdr_callback(plutosdr_transfer* _transfer)
 //-------------------------------------------------------------------------------------------
 void rx_plutosdr::rx_execute(int16_t* _rx_i, int16_t* _rx_q)
 {
-    for(unsigned int i = 0; i < len_out_device; ++i) {
-        ptr_i_buffer[i] = _rx_i[i];
-        ptr_q_buffer[i] = _rx_q[i];
-    }
+    float level_detect=std::numeric_limits<float>::max();
+    conv.execute(0,len_out_device, _rx_i, _rx_q,ptr_buffer,level_detect,*signal);
     len_buffer += len_out_device;
-    ptr_i_buffer += len_out_device;
-    ptr_q_buffer += len_out_device;
+    ptr_buffer += len_out_device;
 
     if(demodulator->mutex->try_lock()) {
 
@@ -266,14 +262,12 @@ void rx_plutosdr::rx_execute(int16_t* _rx_i, int16_t* _rx_q)
         set_gain();
 
         if(swap_buffer) {
-            emit execute(len_buffer, i_buffer_a, q_buffer_a, signal);
-            ptr_i_buffer = i_buffer_b;
-            ptr_q_buffer = q_buffer_b;
+            emit execute(len_buffer, &buffer_a[0], level_detect, signal);
+            ptr_buffer = buffer_b.data();
         }
         else {
-            emit execute(len_buffer, i_buffer_b, q_buffer_b, signal);
-            ptr_i_buffer = i_buffer_a;
-            ptr_q_buffer = q_buffer_a;
+            emit execute(len_buffer, &buffer_b[0], level_detect, signal);
+            ptr_buffer = buffer_a.data();
         }
         swap_buffer = !swap_buffer;
         len_buffer = 0;
@@ -289,12 +283,10 @@ void rx_plutosdr::rx_execute(int16_t* _rx_i, int16_t* _rx_q)
             blocks = 1;
             len_buffer = 0;
             if(swap_buffer) {
-                ptr_i_buffer = i_buffer_a;
-                ptr_q_buffer = q_buffer_a;
+                ptr_buffer = buffer_a.data();
             }
             else {
-                ptr_i_buffer = i_buffer_b;
-                ptr_q_buffer = q_buffer_b;
+                ptr_buffer = buffer_b.data();
             }
         }
     }
@@ -306,10 +298,6 @@ void rx_plutosdr::stop()
     reboot();
     emit stop_demodulator();
     if(thread->isRunning()) thread->wait(1000);
-    delete [] i_buffer_a;
-    delete [] q_buffer_a;
-    delete [] i_buffer_b;
-    delete [] q_buffer_b;
     delete signal;
     emit finished();
 }

@@ -2,7 +2,7 @@
 #define RX_PLUTOSDR_H
 
 #include <QObject>
-
+#include <vector>
 #include "libplutosdr/plutosdr_hi_speed_rx.h"
 #include "DVB_T2/dvbt2_demodulator.h"
 
@@ -20,7 +20,7 @@ public:
     void reboot();
 
 signals:
-    void execute(int _len_in, int16_t* _i_in, int16_t* _q_in, signal_estimate* signal_);
+    void execute(int _len_in, complex* _in, float _level_estimate, signal_estimate* signal_);
     void status(int _err);
     void radio_frequency(double _rf);
     void level_gain(int _gain);
@@ -43,9 +43,9 @@ private:
     uint32_t max_len_out;
     int blocks = 1;
     int len_buffer = 0;
-    int16_t *i_buffer_a, *q_buffer_a;
-    int16_t *i_buffer_b, *q_buffer_b;
-    int16_t *ptr_i_buffer, *ptr_q_buffer;
+    std::vector<complex> buffer_a;
+    std::vector<complex> buffer_b;
+    complex* ptr_buffer;
     bool swap_buffer = true;
 
     signal_estimate* signal;
@@ -61,6 +61,7 @@ private:
     uint32_t gain_db;
     bool agc = false;
     bool done = true;
+    convert_iq<int16_t> conv{};
 
     static int plutosdr_callback(plutosdr_transfer* _transfer);
 

@@ -3,6 +3,7 @@
 //-------------------------------------------------------------------------------------------
 rx_airspy::rx_airspy(QObject *parent) : QObject(parent)
 {
+    conv.init(2, 1.0f / (1 << 12), 0.04f, 0.02f);
 
 }
 //-------------------------------------------------------------------------------------------
@@ -105,8 +106,8 @@ int rx_airspy::init(uint32_t _rf_frequence_hz, int _gain)
     uint len_out_device = 65536 * 2;
     uint max_len_out = len_out_device * max_blocks;
 
-    buffer_a = new int16_t[max_len_out];
-    buffer_b = new int16_t[max_len_out];
+    buffer_a.resize(max_len_out);
+    buffer_b.resize(max_len_out);
 
     signal = new signal_estimate;
 
@@ -144,12 +145,13 @@ void rx_airspy::reset()
     }
     signal->gain_offset = 0;
     signal->change_gain = true;
-    ptr_buffer = buffer_a;
+    ptr_buffer = &buffer_a[0];
     swap_buffer = true;
     len_buffer = 0;
     blocks = 1;
     set_rf_frequency();
     set_gain();
+    conv.reset();
 }
 //-------------------------------------------------------------------------------------------
 void rx_airspy::set_rf_frequency()
@@ -228,9 +230,10 @@ int rx_airspy::rx_callback(airspy_transfer_t* transfer)
 void rx_airspy::rx_execute(int16_t* _ptr_rx_buffer, int _len_out_device)
 {
     int len_out_device = _len_out_device;
-    for(int i = 0; i < len_out_device; ++i) ptr_buffer[i] = _ptr_rx_buffer[i];
+    float level_detect=std::numeric_limits<float>::max();
+    conv.execute(0,len_out_device / 2, &_ptr_rx_buffer[0], &_ptr_rx_buffer[1], ptr_buffer, level_detect,*signal);
     len_buffer += len_out_device / 2;
-    ptr_buffer += len_out_device;
+    ptr_buffer += len_out_device / 2;
 
     if(demodulator->mutex->try_lock()) {
 
@@ -248,12 +251,12 @@ void rx_airspy::rx_execute(int16_t* _ptr_rx_buffer, int _len_out_device)
         set_gain();
 
         if(swap_buffer) {
-            emit execute(len_buffer, &buffer_a[0], &buffer_a[1], signal);
-            ptr_buffer = buffer_b;
+            emit execute(len_buffer, &buffer_a[0], level_detect, signal);
+            ptr_buffer = buffer_b.data();
         }
         else {
-            emit execute(len_buffer, &buffer_b[0], &buffer_b[1], signal);
-            ptr_buffer = buffer_a;
+            emit execute(len_buffer, &buffer_b[0], level_detect, signal);
+            ptr_buffer = buffer_a.data();
         }
         swap_buffer = !swap_buffer;
         len_buffer = 0;
@@ -268,10 +271,10 @@ void rx_airspy::rx_execute(int16_t* _ptr_rx_buffer, int _len_out_device)
             blocks = 1;
             len_buffer = 0;
             if(swap_buffer) {
-                ptr_buffer = buffer_a;
+                ptr_buffer = &buffer_a[0];
             }
             else {
-                ptr_buffer = buffer_b;
+                ptr_buffer = &buffer_b[0];
             }
         }
     }

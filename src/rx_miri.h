@@ -37,7 +37,7 @@ public:
     dvbt2_demodulator* demodulator;
 
 signals:
-    void execute(int _len_in, short* _i_in, short* _q_in, signal_estimate* signal_);
+    void execute(int _len_in, complex* _in, float _level_estimate, signal_estimate* signal_);
     void status(int _err);
     void radio_frequency(double _rf);
     void level_gain(int _gain);
@@ -67,12 +67,12 @@ private:
     float sample_rate;
     int max_len_out;
 
-    std::vector<int16_t> buffer_a;
-    std::vector<int16_t> buffer_b;
-    int16_t* ptr_buffer;
+    std::vector<complex> buffer_a;
+    std::vector<complex> buffer_b;
+    complex* ptr_buffer;
     int  blocks = 1;
     const int len_out_device = 128*1024;
-    const int max_blocks = 256 * 4;
+    const int max_blocks = 256;
     int len_buffer = 0;
     bool swap_buffer = true;
 
@@ -91,7 +91,7 @@ private:
 
     mirisdr_dev_t*_dev;
     int err;
-
+    convert_iq<int16_t> conv{};
     void reset();
 };
 
