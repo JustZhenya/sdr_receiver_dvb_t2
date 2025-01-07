@@ -21,7 +21,7 @@
 //----------------------------------------------------------------------------------------------------------------------------
 rx_hackrf::rx_hackrf(QObject *parent) : QObject(parent)
 {
-    conv.init(2, 1.0f / (1 << 7), 0.04f, 0.01f);
+    conv.init(2, 1.0f / (1 << 7), 0.03f, 0.015f);
     hackrf_init(); /* call only once before the first open */
     fprintf(stderr,"rx_hackrf::rx_hackrf\n");
 
@@ -193,7 +193,7 @@ void rx_hackrf::set_rf_frequency()
         signal->change_frequency = false;
         frequency_changed = false;
         signal->frequency_changed = false;
-        //signal->correct_resample = signal->coarse_freq_offset / rf_frequency;
+        signal->correct_resample = signal->coarse_freq_offset / rf_frequency;
         rf_frequency += signal->coarse_freq_offset;
         int err=hackrf_set_freq( _dev, uint64_t(rf_frequency) );
         if(err != 0) {

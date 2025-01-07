@@ -21,7 +21,7 @@
 //----------------------------------------------------------------------------------------------------------------------------
 rx_miri::rx_miri(QObject *parent) : QObject(parent)
 {
-    fprintf(stderr,"rx_miri::rx_miri\n");
+    conv.init(2, 1.0f / (1 << 15), 0.03f, 0.015f);
 
 }
 //-------------------------------------------------------------------------------------------
@@ -87,7 +87,6 @@ int rx_miri::init(double _rf_frequency, int _gain_db)
     max_len_out = len_out_device * max_blocks;
     buffer_a.resize(max_len_out);
     buffer_b.resize(max_len_out);
-    conv.init(2, 1.0f / (1 << 15), 0.03f, 0.01f);
 
     demodulator = new dvbt2_demodulator(id_miri, sample_rate);
     thread = new QThread;
