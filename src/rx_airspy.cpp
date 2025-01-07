@@ -9,7 +9,7 @@ rx_airspy::rx_airspy(QObject *parent) : QObject(parent)
 //-------------------------------------------------------------------------------------------
 rx_airspy::~rx_airspy()
 {
-
+    delete signal;
 }
 //-------------------------------------------------------------------------------------------
 std::string rx_airspy::error (int err)
