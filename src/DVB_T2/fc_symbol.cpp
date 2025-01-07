@@ -265,10 +265,12 @@ void fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, float &
     _sample_rate_offset = (sum_angle_2 - sum_angle_1)/* / k_total*/;
 
     int len = n_fc;
-    memcpy(show_symbol, _ofdm_cell, sizeof(complex) * static_cast<unsigned int>(fft_size));
-    memcpy(show_data, deinterleaved_cell, sizeof(complex) * static_cast<unsigned int>(len));
-    emit replace_spectrograph(fft_size, &show_symbol[0]);
-    emit replace_constelation(len, &show_data[0]);
-
+    if(enabled_display)
+    {
+        memcpy(show_symbol, _ofdm_cell, sizeof(complex) * static_cast<unsigned int>(fft_size));
+        memcpy(show_data, deinterleaved_cell, sizeof(complex) * static_cast<unsigned int>(len));
+        emit replace_spectrograph(fft_size, &show_symbol[0]);
+        emit replace_constelation(len, &show_data[0]);
+    }
 }
 //-------------------------------------------------------------------------------------------

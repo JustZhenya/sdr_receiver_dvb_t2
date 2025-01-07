@@ -61,7 +61,7 @@ const int TRIALS = 1;//
 #include "LDPC/layered_decoder.hh"
 typedef NormalUpdate<simd_type> update_type;
 typedef OffsetMinSumAlgorithm<simd_type, update_type, FACTOR> algorithm_type;
-const int TRIALS = 25;//25
+const int TRIALS = 15;//25
 #endif
 
 //typedef NormalUpdate<simd_type> update_type;

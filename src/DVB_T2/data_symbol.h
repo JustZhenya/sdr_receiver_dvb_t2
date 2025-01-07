@@ -33,6 +33,10 @@ public:
                      float &_sample_rate_offset, float &_phase_offset, std::vector<complex> &out);
     void init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
               address_freq_deinterleaver* _address);
+    void enable_display(bool mode)
+    {
+        enabled_display = mode;
+    }
 
 signals:
     void replace_spectrograph(const int _len_data, complex* _data);
@@ -65,6 +69,7 @@ private:
     complex* show_symbol = nullptr;
     complex* show_data = nullptr;
     complex* show_est_data = nullptr;
+    bool enabled_display = false;
 };
 
 #endif // DATA_SYMBOL_H

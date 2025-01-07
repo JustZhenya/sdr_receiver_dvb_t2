@@ -83,7 +83,7 @@ private:
 public:
     save_buffer(){ reset();}
 
-    void write(T &_in)
+    void write(const T &_in)
     {
         buffer[idx] = _in;
         buffer[idx+len] = _in;

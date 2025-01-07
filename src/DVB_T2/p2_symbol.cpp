@@ -259,26 +259,29 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
 
     _sample_rate_offset = (sum_angle_2 - sum_angle_1)/* / k_total*/;
 
-    memcpy(show_symbol, _ofdm_cell, sizeof(complex) * static_cast<unsigned long>(fft_size));
-    int len_show = L1_PRE_CELL;
-    int idx_show = 0;
-    if(_crc32_l1_pre){
-        switch (id_show) {
-        case 1:
-            len_show = l1_pre.l1_post_size;
-            idx_show = L1_PRE_CELL;
-            break;
-        case 2:
-            idx_show = l1_pre.l1_post_size + L1_PRE_CELL;
-            len_show = c_p2 - idx_show;
-            break;
+    if(enabled_display)
+    {
+        memcpy(show_symbol, _ofdm_cell, sizeof(complex) * static_cast<unsigned long>(fft_size));
+        int len_show = L1_PRE_CELL;
+        int idx_show = 0;
+        if(_crc32_l1_pre){
+            switch (id_show) {
+            case 1:
+                len_show = l1_pre.l1_post_size;
+                idx_show = L1_PRE_CELL;
+                break;
+            case 2:
+                idx_show = l1_pre.l1_post_size + L1_PRE_CELL;
+                len_show = c_p2 - idx_show;
+                break;
+            }
         }
+        memcpy(show_data, deinterleaved_cell, sizeof(complex) * static_cast<unsigned long>(c_p2));
+        emit replace_spectrograph(fft_size, &show_symbol[0]);
+        emit replace_constelation(len_show, &show_data[idx_show]);
+        memcpy(show_est_data, est_data, sizeof(complex) * static_cast<unsigned long>(len_est));
+        emit replace_oscilloscope(len_est, show_est_data);
     }
-    memcpy(show_data, deinterleaved_cell, sizeof(complex) * static_cast<unsigned long>(c_p2));
-    emit replace_spectrograph(fft_size, &show_symbol[0]);
-    emit replace_constelation(len_show, &show_data[idx_show]);
-    memcpy(show_est_data, est_data, sizeof(complex) * static_cast<unsigned long>(len_est));
-    emit replace_oscilloscope(len_est, show_est_data);
 
     if(l1_pre_info(_dvbt2)) {
         _l1_pre = l1_pre;

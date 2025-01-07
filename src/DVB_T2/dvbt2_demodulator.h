@@ -140,6 +140,10 @@ class dvbt2_demodulator : public QObject
 public:
     explicit dvbt2_demodulator(id_device_t _id_device, float _sample_rate, QObject *parent = nullptr);
     ~dvbt2_demodulator();
+    void enable_display(bool mode)
+    {
+        enabled_display = mode;
+    }
 
     QMutex* mutex;
     p1_symbol p1_demodulator{};
@@ -229,6 +233,7 @@ private:
 
     bool change_gain = false;
     int gain_offset = 0;
+    bool enabled_display = false;
 
     void symbol_acquisition(int _len_in, complex* _in, signal_estimate *signal_);
     void set_guard_interval();

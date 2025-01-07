@@ -317,10 +317,13 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
 
     if(idx_symbol == n_p2) {
         int len = c_data;
-        memcpy(show_symbol, _ofdm_cell, sizeof(complex) * static_cast<unsigned long>(fft_size));
-        memcpy(show_data, deinterleaved_cell, sizeof(complex) * static_cast<unsigned long>(len));
-        emit replace_spectrograph(fft_size, &show_symbol[0]);
-        emit replace_constelation(len, &show_data[0]);
+        if(enabled_display)
+        {
+            memcpy(show_symbol, _ofdm_cell, sizeof(complex) * static_cast<unsigned long>(fft_size));
+            memcpy(show_data, deinterleaved_cell, sizeof(complex) * static_cast<unsigned long>(len));
+            emit replace_spectrograph(fft_size, &show_symbol[0]);
+            emit replace_constelation(len, &show_data[0]);
+        }
     }
 
 }

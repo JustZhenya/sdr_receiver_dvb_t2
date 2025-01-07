@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2020 Oleg Malyutin.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -42,6 +42,10 @@ public:
                  complex* _buffer_sym, int &_idx_buffer_sym,
                  dvbt2_parameters &_dvbt2, double &_coarse_freq_offset,
                  bool &_p1_decoded, bool &_reset);
+    void enable_display(bool mode)
+    {
+        enabled_display = mode;
+    }
 
 signals:
     void replace_spectrograph(const int _len_data, complex* _data);
@@ -76,6 +80,7 @@ private:
     complex* in_fft;
     complex* p1_fft;
     const int first_active_carrier = 86;
+    bool enabled_display = false;
     int p1_randomize[P1_ACTIVE_CARRIERS];
     void init_p1_randomize();
     complex p1_dbpsk[P1_ACTIVE_CARRIERS];

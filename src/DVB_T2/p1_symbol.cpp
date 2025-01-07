@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2020 Oleg Malyutin.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -79,7 +79,7 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
                         bool &_p1_decoded, bool &_reset)
 {
     static int idx_fq_shift = 0;
-    complex data_sihft, a, b, c, d, in_av_c, in_av_b, out_av_c, out_av_b, cor, out;
+    complex data_sihft, a, b, c, d, in_av_c, in_av_b, out_av_c, out_av_b, out;
     complex* buffer_sym = _buffer_sym;
     int idx_in = _consume;
     int len_in = _len_in;
@@ -130,16 +130,19 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
 
                 reset_buffer();
 
-                //__show__
-                cor_os = cor_buffer.read();
-                //                    cor_os[0].imag(_coarse_freq_offset);
-                for(int i = 0; i < P1_ACTIVE_CARRIERS; ++i) {
-                    p1_dbpsk[i] = (p1_fft + first_active_carrier)[p1_active_carriers[i]] * 0.1f;
+                if(enabled_display)
+                {
+                    //__show__
+                    cor_os = cor_buffer.read();
+                    //                    cor_os[0].imag(_coarse_freq_offset);
+                    for(int i = 0; i < P1_ACTIVE_CARRIERS; ++i) {
+                        p1_dbpsk[i] = (p1_fft + first_active_carrier)[p1_active_carriers[i]] * 0.1f;
+                    }
+                    emit replace_spectrograph(P1_A_PART, p1_fft);
+                    emit replace_constelation(P1_ACTIVE_CARRIERS, p1_dbpsk);
+                    emit replace_oscilloscope(P1_A_PART, cor_os);
+                    //_______
                 }
-                emit replace_spectrograph(P1_A_PART, p1_fft);
-                emit replace_constelation(P1_ACTIVE_CARRIERS, p1_dbpsk);
-                emit replace_oscilloscope(P1_A_PART, cor_os);
-                //_______
 
                 break;
 
@@ -158,8 +161,9 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
         d = delay_2(out_av_b);
         out = a * d;
         correlation = norm(out);
-        cor.real(correlation);
-        cor_buffer.write(cor);
+        const complex cor(correlation);
+        if(enabled_display)
+            cor_buffer.write(cor);
         if(correlation > begin_threshold) {
             correlation_detect = true;
             if(correlation > max_correlation) {

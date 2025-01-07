@@ -324,8 +324,11 @@ void time_deinterleaver::execute()
                 idx_row_ti = 0;
                 if(idx_show_plp == plp_id) {
                     int len = cells_per_fec_block_plp;
-                    memcpy(&show_data[0], &time_deint_cell[0], sizeof(complex) * static_cast<unsigned long>(len));
-                    emit replace_constelation(len, &show_data[0]);
+                    if(enabled_display)
+                    {
+                        memcpy(&show_data[0], &time_deint_cell[0], sizeof(complex) * static_cast<unsigned long>(len));
+                        emit replace_constelation(len, &show_data[0]);
+                    }
                 }
                 mutex_out->lock();
                 emit ti_block(ti_block_size, time_deint_cell, plp_id, l1_post);

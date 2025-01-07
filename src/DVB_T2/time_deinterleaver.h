@@ -36,6 +36,10 @@ public:
     llr_demapper* qam;
     volatile int idx_show_plp = 0;
     vector_fifo<complex> fifo{};
+    void enable_display(bool mode)
+    {
+        enabled_display = mode;
+    }
 
 signals:
     void ti_block(int _ti_block_size, complex* _time_deint_cell, int _plp_id, l1_postsignalling _l1_post);
@@ -101,6 +105,7 @@ private:
     int ti_block_size = 0;
     int idx_step_ti = 0;
     int idx_time_deint_cell = 0;
+    bool enabled_display = false;
     void address_cell_deinterleaving(int _num_fec_block_max, int _cell_per_fec_block,
                                      int *_permutations);
     std::vector<complex> show_data{};

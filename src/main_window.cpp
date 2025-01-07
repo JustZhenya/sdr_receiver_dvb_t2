@@ -636,6 +636,7 @@ void main_window::on_tab_widget_currentChanged(int index)
                 p1_spectrograph, &plot::replace_spectrograph);
         connect(&dvbt2->p1_demodulator, &p1_symbol::replace_constelation,
                 p1_constelation, &plot::replace_constelation);
+        dvbt2->p1_demodulator.enable_display(true);
         break;
     case 2:
         disconnect_signals();
@@ -643,6 +644,7 @@ void main_window::on_tab_widget_currentChanged(int index)
                 p2_spectrograph, &plot::replace_spectrograph);
         connect(&dvbt2->p2_demodulator, &p2_symbol::replace_constelation,
                 p2_constelation, &plot::replace_constelation);
+        dvbt2->p2_demodulator.enable_display(true);
         break;
     case 3:
         disconnect_signals();
@@ -650,6 +652,7 @@ void main_window::on_tab_widget_currentChanged(int index)
                 data_spectrograph, &plot::replace_spectrograph);
         connect(&dvbt2->data_demodulator, &data_symbol::replace_constelation,
                 data_constelation, &plot::replace_constelation);
+        dvbt2->data_demodulator.enable_display(true);
         break;
     case 4:
         disconnect_signals();
@@ -657,11 +660,13 @@ void main_window::on_tab_widget_currentChanged(int index)
                 fc_spectrograph, &plot::replace_spectrograph);
         connect(&dvbt2->fc_demod, &fc_symbol::replace_constelation,
                 fc_constelation, &plot::replace_constelation);
+        dvbt2->fc_demod.enable_display(true);
         break;
     case 5:
         disconnect_signals();
         connect(dvbt2->deinterleaver, &time_deinterleaver::replace_constelation,
                 qam_constelation, &plot::replace_constelation);
+        dvbt2->deinterleaver->enable_display(true);
         break;
     case 8:
         disconnect_signals();
@@ -673,12 +678,23 @@ void main_window::on_tab_widget_currentChanged(int index)
 
         connect(dvbt2, &dvbt2_demodulator::replace_null_indicator,
                 frequency_offset, &plot::replace_null_indicator);
+        dvbt2->p1_demodulator.enable_display(true);
+        dvbt2->p2_demodulator.enable_display(true);
+        dvbt2->enable_display(true);
         break;
+    default:
+        disconnect_signals();
     }
 }
 //------------------------------------------------------------------------------------------------
 void main_window::disconnect_signals()
 {
+    dvbt2->p1_demodulator.enable_display(false);
+    dvbt2->fc_demod.enable_display(false);
+    dvbt2->data_demodulator.enable_display(false);
+    dvbt2->p2_demodulator.enable_display(false);
+    //dvbt2->deinterleaver->enable_display(false);
+    dvbt2->enable_display(false);
     disconnect(&dvbt2->p1_demodulator, &p1_symbol::replace_spectrograph,
             p1_spectrograph, &plot::replace_spectrograph);
     disconnect(&dvbt2->p1_demodulator, &p1_symbol::replace_constelation,

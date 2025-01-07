@@ -42,6 +42,10 @@ public:
     void execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_symbol, complex* _ofdm_cell,
                      l1_presignalling &_l1_pre, l1_postsignalling &_l1_post, bool &_crc32_l1_pre,
                      bool &_crc32_l1_post, float &_sample_rate_offset, float &_phase_offset, std::vector<complex> &out);
+    void enable_display(bool mode)
+    {
+        enabled_display = mode;
+    }
 
     enum id_show{
         p2_l1_pre = 0,
@@ -95,6 +99,7 @@ private:
     unsigned char* l1_post_bit_interleaving = nullptr;
     bool chek_l1_post = false;
     bool view_l1_post_update = true;
+    bool enabled_display = false;
     void time_frequency_slicing_info(unsigned char *bit, l1_postsignalling &l1);
     void rf_info(unsigned char *bit, l1_postsignalling &l1);
     void plp_info(unsigned char *bit, l1_postsignalling &l1);
