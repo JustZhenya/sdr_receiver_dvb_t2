@@ -19,6 +19,7 @@
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>
+#include <array>
 
 #include "dvbt2_definition.h"
 #include "bb_de_header.h"
@@ -48,8 +49,9 @@ private:
     QMutex* mutex_in;
     QMutex* mutex_out;
     uint8_t* out = nullptr;
-    uint8_t* buffer_a = nullptr;
-    uint8_t* buffer_b = nullptr;
+    constexpr static int max_len{53840};
+    std::array<uint8_t, max_len> buffer_a{};
+    std::array<uint8_t, max_len> buffer_b{};
     bool swap_buffer = true;
     uint8_t descrambler[FEC_SIZE_NORMAL];
     void init_descrambler();

@@ -20,9 +20,7 @@ bch_decoder::bch_decoder(QWaitCondition *_signal_in, QMutex *_mutex_in, QObject 
     signal_in(_signal_in),
     mutex_in(_mutex_in)
 {
-    buffer_a = new uint8_t[53840];
-    buffer_b = new uint8_t[53840];
-    out = buffer_a;
+    out = &buffer_a[0];
 
     init_descrambler();
 
@@ -44,8 +42,6 @@ bch_decoder::~bch_decoder()
 {
     emit stop_deheader();
     if(thread->isRunning()) thread->wait(1000);
-    delete [] buffer_a;
-    delete [] buffer_b;
 }
 //------------------------------------------------------------------------------------------
 void bch_decoder::init_descrambler()
@@ -144,20 +140,20 @@ void bch_decoder::execute(int *_idx_plp_simd, l1_postsignalling _l1_post, int _l
         if(swap_buffer) {
             swap_buffer = false;
             mutex_out->lock();
-            emit bit_descramble(plp_id[n], l1_post, k_bch, buffer_a);
+            emit bit_descramble(plp_id[n], l1_post, k_bch, &buffer_a[0]);
             signal_out->wait(mutex_out);
             mutex_out->unlock();
             ++n;
-            out = buffer_b;
+            out = &buffer_b[0];
         }
         else {
             swap_buffer = true;
             mutex_out->lock();
-            emit bit_descramble(plp_id[n], l1_post, k_bch, buffer_b);
+            emit bit_descramble(plp_id[n], l1_post, k_bch, &buffer_b[0]);
             signal_out->wait(mutex_out);
             mutex_out->unlock();
             ++n;
-            out = buffer_a;
+            out = &buffer_a[0];
         }
     }
 
