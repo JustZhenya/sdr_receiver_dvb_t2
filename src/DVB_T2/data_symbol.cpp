@@ -26,14 +26,6 @@ data_symbol::data_symbol(QObject* parent) : QObject(parent)
 //-------------------------------------------------------------------------------------------
 data_symbol::~data_symbol()
 {
-    if(est_show != nullptr){
-        delete [] buffer_cell;
-        delete [] est_show;
-        delete [] show_symbol;
-        delete [] show_data;
-
-        delete [] show_est_data;
-    }
 }
 //-------------------------------------------------------------------------------------------
 void data_symbol::init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
@@ -92,15 +84,14 @@ void data_symbol::init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
     pilot->data_generator(_dvbt2);
     data_carrier_map = pilot->data_carrier_map;
     data_pilot_refer = pilot->data_pilot_refer;
-    buffer_cell = new complex[c_data];
+    buffer_cell.resize(c_data);
     address->data_address_freq_deinterleaver(_dvbt2);
     h_even_data = address->h_even_data;
     h_odd_data = address->h_odd_data;
-    est_show = new complex[fft_size];
-    show_symbol = new complex[fft_size];
-    show_data = new complex[c_data];
+    est_show.resize(fft_size);
+    show_symbol.resize(fft_size);
+    show_data.resize(c_data);
 
-    show_est_data = new complex[k_total];
 }
 //-------------------------------------------------------------------------------------------
 void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
@@ -199,9 +190,11 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
             angle_est = angle;
             amp_est = amp;
             //Only for show
+#if 0
             est_show[len_show].real(angle);
             est_show[len_show].imag(amp);
             ++len_show;
+#endif
             // ...
             break;
         case TRPAPR_CARRIER:
@@ -234,9 +227,11 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
         est_pilot = cell * pilot_refer;
         amp_pilot = amp_sp;
         //Only for show
+#if 0
         est_show[len_show].real(atan2_approx(est_pilot.imag(), est_pilot.real()));
         est_show[len_show].imag(sqrt(norm(cell)) / amp_pilot);
         ++len_show;
+#endif
         // ...
         break;
     case TRPAPR_CARRIER:
@@ -294,9 +289,11 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
             angle_est = angle;
             amp_est = amp;
             //Only for show
+#if 0
             est_show[len_show].real(angle);
             est_show[len_show].imag(amp);
             ++len_show;
+#endif
             // ...
             break;
         case TRPAPR_CARRIER:
@@ -319,8 +316,8 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
         int len = c_data;
         if(enabled_display)
         {
-            memcpy(show_symbol, _ofdm_cell, sizeof(complex) * static_cast<unsigned long>(fft_size));
-            memcpy(show_data, deinterleaved_cell, sizeof(complex) * static_cast<unsigned long>(len));
+            memcpy(&show_symbol[0], _ofdm_cell, sizeof(complex) * static_cast<unsigned long>(fft_size));
+            memcpy(&show_data[0], deinterleaved_cell, sizeof(complex) * static_cast<unsigned long>(len));
             emit replace_spectrograph(fft_size, &show_symbol[0]);
             emit replace_constelation(len, &show_data[0]);
         }

@@ -61,14 +61,11 @@ private:
     float cor_amp_cp;
     int* h_even_data;
     int* h_odd_data;
-    complex* buffer_cell;        // max(dx) x max(dy) x 2 for scaterred pilot pattern
-    complex* deinterleaved_buffer_a;
-    complex* deinterleaved_buffer_b;
+    std::vector<complex> buffer_cell{};        // max(dx) x max(dy) x 2 for scaterred pilot pattern
     bool swap_buffer = false;
-    complex* est_show = nullptr;
-    complex* show_symbol = nullptr;
-    complex* show_data = nullptr;
-    complex* show_est_data = nullptr;
+    std::vector<complex> est_show{};
+    std::vector<complex> show_symbol{};
+    std::vector<complex> show_data{};
     bool enabled_display = false;
 };
 
