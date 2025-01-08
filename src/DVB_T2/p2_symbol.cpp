@@ -26,17 +26,6 @@ p2_symbol::p2_symbol(QObject *parent) : QObject(parent)
 //-------------------------------------------------------------------------------------------
 p2_symbol::~p2_symbol()
 {
-    if(show_symbol != nullptr) delete [] show_symbol;
-    if(show_data != nullptr) delete [] show_data;
-    if(est_data != nullptr) delete [] est_data;
-    if(show_est_data != nullptr) delete [] show_est_data;
-    if(l1_post.rf != nullptr) delete [] l1_post.rf;
-    if(l1_post.plp != nullptr) delete [] l1_post.plp;
-    if(l1_post.aux != nullptr) delete [] l1_post.aux;
-    if(l1_post_bit != nullptr) delete [] l1_post_bit;
-    if(l1_post_bit_interleaving != nullptr) delete [] l1_post_bit_interleaving;
-    if(l1_post.dyn.plp != nullptr) delete [] l1_post.dyn.plp;
-    if(l1_post.dyn.aux_private_dyn != nullptr) delete [] l1_post.dyn.aux_private_dyn;
 }
 //-------------------------------------------------------------------------------------------
 void p2_symbol::init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
@@ -65,10 +54,10 @@ void p2_symbol::init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
     h_even_p2 = _address->h_even_p2;
     h_odd_p2 = _address->h_odd_p2;
 
-    show_symbol = new complex[fft_size];
-    show_data = new complex[c_p2];
-    est_data = new complex[k_total];
-    show_est_data = new complex[k_total];
+    show_symbol.resize(fft_size);
+    show_data.resize(c_p2);
+    est_data.resize(k_total);
+    show_est_data.resize(k_total);
 
     init_l1_randomizer();
 }
@@ -261,7 +250,7 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
 
     if(enabled_display)
     {
-        memcpy(show_symbol, _ofdm_cell, sizeof(complex) * static_cast<unsigned long>(fft_size));
+        memcpy(&show_symbol[0], _ofdm_cell, sizeof(complex) * static_cast<unsigned long>(fft_size));
         int len_show = L1_PRE_CELL;
         int idx_show = 0;
         if(_crc32_l1_pre){
@@ -276,11 +265,11 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
                 break;
             }
         }
-        memcpy(show_data, deinterleaved_cell, sizeof(complex) * static_cast<unsigned long>(c_p2));
+        memcpy(&show_data[0], deinterleaved_cell, sizeof(complex) * static_cast<unsigned long>(c_p2));
         emit replace_spectrograph(fft_size, &show_symbol[0]);
         emit replace_constelation(len_show, &show_data[idx_show]);
-        memcpy(show_est_data, est_data, sizeof(complex) * static_cast<unsigned long>(len_est));
-        emit replace_oscilloscope(len_est, show_est_data);
+        memcpy(&show_est_data[0], &est_data[0], sizeof(complex) * static_cast<unsigned long>(len_est));
+        emit replace_oscilloscope(len_est, &show_est_data[0]);
     }
 
     if(l1_pre_info(_dvbt2)) {
@@ -405,10 +394,8 @@ bool p2_symbol::l1_pre_info(dvbt2_parameters &_dvbt2)
             break;
         case 67:
             l1_pre.l1_post_info_size = field;
-            if(l1_post_bit == nullptr) l1_post_bit =
-                    new unsigned char[l1_pre.l1_post_size * l1_pre.l1_post_mod * 2];
-            if(l1_post_bit_interleaving == nullptr) l1_post_bit_interleaving =
-                    new unsigned char[l1_pre.l1_post_size * l1_pre.l1_post_mod * 2];
+            l1_post_bit.resize(l1_pre.l1_post_size * l1_pre.l1_post_mod * 2);
+            l1_post_bit_interleaving.resize(l1_pre.l1_post_size * l1_pre.l1_post_mod * 2);
             field = 0;
             shift = 3;
             break;
@@ -459,7 +446,11 @@ bool p2_symbol::l1_pre_info(dvbt2_parameters &_dvbt2)
             break;
         case 154:
             l1_pre.num_rf = field;
-            if(l1_post.rf == nullptr) l1_post.rf = new l1_postsignalling_rf[field];
+            if(l1_post_rf.size() != size_t(field))
+            {
+                l1_post_rf.resize(field);
+                l1_post.rf=&l1_post_rf[0];
+            }
             idx_l1_post_rf_shift = (field - 1) * 35;
             field = 0;
             shift = 2;
@@ -675,21 +666,38 @@ bool p2_symbol::l1_post_info()
     for(int s = 7; s >= 0 ; --s){
         l1_post.num_plp |= l1_post_bit[idx++] << s;
     }
-    if(l1_post.plp == nullptr) l1_post.plp = new l1_postsignalling_plp[l1_post.num_plp];
+    if(l1_post_plp.size() != size_t(l1_post.num_plp))
+    {
+        l1_post_plp.resize(l1_post.num_plp);
+        l1_post.plp=&l1_post_plp[0];
+    }
     idx_l1_post_plp_shift = (l1_post.num_plp - 1) * 89;
     idx = 23;
     l1_post.num_aux = 0;
     for(int s = 3; s >= 0 ; --s){
         l1_post.num_aux |= l1_post_bit[idx++] << s;
     }
-    if(l1_post.aux == nullptr) l1_post.aux = new l1_postsignalling_aux[l1_post.num_aux];
+    if(l1_post_aux.size() != size_t(l1_post.num_aux))
+    {
+        l1_post_aux.resize(l1_post.num_aux);
+        l1_post.aux=&l1_post_aux[0];
+    }
     idx_l1_post_aux_shift = (l1_post.num_aux - 1) * 32;
     // TODO check l1_post.num_aux != 0
 //    if(l1_post.dyn.aux_private_dyn == nullptr) l1_post.dyn.aux_private_dyn = new int[l1_post.num_aux];
+    if(l1_post_dyn_aux_private_dyn.size() != size_t(l1_post.num_aux))
+    {
+        l1_post_dyn_aux_private_dyn.resize(l1_post.num_aux);
+        l1_post.dyn.aux_private_dyn = &l1_post_dyn_aux_private_dyn[0];
+    }
     idx_l1_post_dyn_aux_shift = (l1_post.num_aux - 1) * 48;
     idx_l1_post_configurable_shift = idx_l1_post_rf_shift + idx_l1_post_fef_shift +
                                         idx_l1_post_plp_shift + idx_l1_post_aux_shift + 223;
-    if(l1_post.dyn.plp == nullptr) l1_post.dyn.plp = new dynamic_plp[l1_post.num_plp];
+    if(l1_post_dyn_plp.size() != size_t(l1_post.num_plp))
+    {
+        l1_post_dyn_plp.resize(l1_post.num_plp);
+        l1_post.dyn.plp=&l1_post_dyn_plp[0];
+    }
     idx_l1_post_dyn_plp_shift = (l1_post.num_plp - 1) * 48;
     idx_l1_post_dyn_shift = idx_l1_post_configurable_shift + idx_l1_post_dyn_plp_shift +
                             idx_l1_post_dyn_aux_shift + 71;
@@ -719,7 +727,7 @@ bool p2_symbol::l1_post_info()
 
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::time_frequency_slicing_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::time_frequency_slicing_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx = 0;
     l1.sub_slices_per_frame = 0;
@@ -730,7 +738,7 @@ void p2_symbol::time_frequency_slicing_info(unsigned char *bit, l1_postsignallin
                                 QString::number(l1_post.sub_slices_per_frame) + "\n";
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::plp_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::plp_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     text_l1_post += "NUM_PLP\t\t" + QString::number(l1_post.num_plp) + "\n";
     int idx = idx_l1_post_rf_shift + idx_l1_post_fef_shift + 70;
@@ -843,7 +851,7 @@ void p2_symbol::plp_info(unsigned char *bit, l1_postsignalling &l1)
     }
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::rf_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::rf_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx = 35;
     for(int i = 0; i < l1_pre.num_rf; i++){
@@ -862,7 +870,7 @@ void p2_symbol::rf_info(unsigned char *bit, l1_postsignalling &l1)
     }
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::fef_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::fef_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx;
     if(l1_pre.s2_field2 == TRUE){
@@ -896,7 +904,7 @@ void p2_symbol::fef_info(unsigned char *bit, l1_postsignalling &l1)
           + "RESERVED_2\t" + QString::number(l1_post.reserved_2) + "\n";
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::aux_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::aux_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx = 27;
     l1.aux_config_rfu = 0;
@@ -923,7 +931,7 @@ void p2_symbol::aux_info(unsigned char *bit, l1_postsignalling &l1)
     }
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::dyn_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::dyn_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx = idx_l1_post_configurable_shift;
     l1.dyn.frame_idx = 0;
@@ -958,7 +966,7 @@ void p2_symbol::dyn_info(unsigned char *bit, l1_postsignalling &l1)
           + "DYN_RESERVED_1\t" + QString::number(l1_post.dyn.reserved_1) + "\n";
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::dyn_plp_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::dyn_plp_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx = idx_l1_post_configurable_shift + 71;
     for(int i = 0; i < l1_post.num_plp; i++){
@@ -989,7 +997,7 @@ void p2_symbol::dyn_plp_info(unsigned char *bit, l1_postsignalling &l1)
     }
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::dyn_aux_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::dyn_aux_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx = idx_l1_post_configurable_shift + idx_l1_post_dyn_plp_shift + 119;
     l1.dyn_next.reserved_3 = 0;
@@ -1006,7 +1014,7 @@ void p2_symbol::dyn_aux_info(unsigned char *bit, l1_postsignalling &l1)
     text_l1_dynamic += "DYN_RESERVED_3\t" + QString::number(l1_post.dyn.reserved_3) + "\n";
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::dyn_next_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::dyn_next_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx = idx_l1_post_dyn_shift;
     l1.dyn_next.frame_idx = 0;
@@ -1041,7 +1049,7 @@ void p2_symbol::dyn_next_info(unsigned char *bit, l1_postsignalling &l1)
           + "DYN_NEXT_RESERVED_1 " + QString::number(l1_post.dyn_next.reserved_1) + "\n";
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::dyn_next_plp_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::dyn_next_plp_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx = idx_l1_post_dyn_shift + 71;
     for(int i = 0; i < l1_post.num_plp; i++){
@@ -1072,7 +1080,7 @@ void p2_symbol::dyn_next_plp_info(unsigned char *bit, l1_postsignalling &l1)
     }
 }
 //-------------------------------------------------------------------------------------------
-void p2_symbol::dyn_next_aux_info(unsigned char *bit, l1_postsignalling &l1)
+void p2_symbol::dyn_next_aux_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1)
 {
     int idx = idx_l1_post_dyn_shift + 119;
     l1.dyn_next.reserved_3 = 0;

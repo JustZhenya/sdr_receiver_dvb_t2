@@ -80,6 +80,11 @@ private:
     int l1_size;
     l1_presignalling l1_pre;
     l1_postsignalling l1_post;
+    std::vector<l1_postsignalling_rf> l1_post_rf{};
+    std::vector<l1_postsignalling_plp> l1_post_plp{};
+    std::vector<l1_postsignalling_aux> l1_post_aux{};
+    std::vector<dynamic_plp> l1_post_dyn_plp{};
+    std::vector<int> l1_post_dyn_aux_private_dyn{};
 
     int idx_l1_post_fef_shift = 0;
     int idx_l1_post_rf_shift = 0;
@@ -95,28 +100,28 @@ private:
 
     QString text_l1_post;
     bool l1_post_info();
-    unsigned char* l1_post_bit = nullptr;
-    unsigned char* l1_post_bit_interleaving = nullptr;
+    std::vector<unsigned char> l1_post_bit{};
+    std::vector<unsigned char> l1_post_bit_interleaving{};
     bool chek_l1_post = false;
     bool view_l1_post_update = true;
     bool enabled_display = false;
-    void time_frequency_slicing_info(unsigned char *bit, l1_postsignalling &l1);
-    void rf_info(unsigned char *bit, l1_postsignalling &l1);
-    void plp_info(unsigned char *bit, l1_postsignalling &l1);
-    void fef_info(unsigned char *bit, l1_postsignalling &l1);
-    void aux_info(unsigned char *bit, l1_postsignalling &l1);
+    void time_frequency_slicing_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
+    void rf_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
+    void plp_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
+    void fef_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
+    void aux_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
 
     QString text_l1_dynamic;
-    void dyn_info(unsigned char *bit, l1_postsignalling &l1);
-    void dyn_plp_info(unsigned char *bit, l1_postsignalling &l1);
-    void dyn_aux_info(unsigned char *bit, l1_postsignalling &l1);
-    void dyn_next_info(unsigned char *bit, l1_postsignalling &l1);
-    void dyn_next_plp_info(unsigned char *bit, l1_postsignalling &l1);
-    void dyn_next_aux_info(unsigned char *bit, l1_postsignalling &l1);
+    void dyn_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
+    void dyn_plp_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
+    void dyn_aux_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
+    void dyn_next_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
+    void dyn_next_plp_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
+    void dyn_next_aux_info(const std::vector<unsigned char> &bit, l1_postsignalling &l1);
 
-    complex* show_symbol = nullptr;
-    complex* show_data = nullptr;
-    complex* est_data = nullptr;
-    complex* show_est_data = nullptr;
+    std::vector<complex> show_symbol{};
+    std::vector<complex> show_data{};
+    std::vector<complex> est_data{};
+    std::vector<complex> show_est_data{};
 };
 #endif // P2_SYMBOL_H
