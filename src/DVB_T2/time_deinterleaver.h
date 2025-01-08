@@ -87,6 +87,9 @@ private:
     int frame_idx;
     int sub_slice_interval;
     bool start_t2_frame = true;
+    std::vector<complex> ua_buffer_a{};
+    std::vector<complex> ua_buffer_b{};
+    constexpr static int alignment = 64;
     complex* buffer_a = nullptr;
     complex* buffer_b = nullptr;
     int* cell_deint = nullptr;

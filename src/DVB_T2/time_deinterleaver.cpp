@@ -137,9 +137,16 @@ void time_deinterleaver::start(dvbt2_parameters _dvbt2, l1_presignalling _l1_pre
         last_frame_idx[i] = first_frame_idx[i] + (p_i[i] - 1) * frame_interval[i];
         if(len_max < len_buffer) len_max = len_buffer;
     }
-
-    buffer_a = static_cast<complex *>(_mm_malloc(sizeof(complex) * static_cast<unsigned int>(len_max), 32));
-    buffer_b = static_cast<complex *>(_mm_malloc(sizeof(complex) * static_cast<unsigned int>(len_max), 32));
+    ua_buffer_a.resize(len_max+alignment/sizeof(complex));
+    ua_buffer_b.resize(len_max+alignment/sizeof(complex));
+    if(ptrdiff_t(&ua_buffer_a[0])%alignment != 0)
+        buffer_a = &ua_buffer_a[(alignment-ptrdiff_t(&ua_buffer_a[0])%alignment)/sizeof(complex)];
+    else
+        buffer_a = &ua_buffer_a[0];
+    if(ptrdiff_t(&ua_buffer_b[0])%alignment != 0)
+        buffer_b = &ua_buffer_b[(alignment-ptrdiff_t(&ua_buffer_b[0])%alignment)/sizeof(complex)];
+    else
+        buffer_b = &ua_buffer_b[0];
 
     show_data.resize(len_max);
     flag_start = true;
@@ -149,10 +156,6 @@ time_deinterleaver::~time_deinterleaver()
 {
     emit stop_qam();
     if(thread->isRunning()) thread->wait(1000);
-    if(flag_start){
-        _mm_free(buffer_a);
-        _mm_free(buffer_b);
-    }
 }
 //-------------------------------------------------------------------------------------------
 void time_deinterleaver::address_cell_deinterleaving(int _num_fec_block_max, int _cells_per_fec_block,
