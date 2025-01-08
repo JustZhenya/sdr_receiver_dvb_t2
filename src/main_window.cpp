@@ -27,7 +27,7 @@ main_window::main_window(QWidget *parent)
 #ifdef USE_HACKRF
     ptr_hackrf(nullptr),
 #endif
-#ifdef USE_HACKRF
+#ifdef USE_MIRI
     ptr_miri(nullptr),
 #endif
     ptr_plutosdr(nullptr)
