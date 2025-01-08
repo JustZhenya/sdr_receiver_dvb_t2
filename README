@@ -15,6 +15,12 @@ Supported devices:
 3. PlutoSDR (Only Linux and firmware 0.31. The program makes a temporary kernel patch for plutosdr-fw 0.31)
 4. HackRF (requires libhackrf from https://github.com/greatscottgadgets/hackrf)
     configure with qmake hackrf=1 to enable HackRF support
+5. Various RSP1/MSi SDR clones. (requires libmirisdr-4, better this fork https://github.com/vladisslav2011/libmirisdr-4)
+    configure with qmake miri=1 to enable HackRF support
+
+Addidtional configuration options:
+MIRI_INCLUDE_DIR, string, point to location of mirisdr.h file
+MIRI_LIB_DIR, string, point to location of libmirisdr.so/libmirisdr.a
 
 Received DVB-T2 signal parameters:
 1. SISO and one RT-TX
