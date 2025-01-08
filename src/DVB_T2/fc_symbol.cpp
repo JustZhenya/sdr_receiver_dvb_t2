@@ -25,14 +25,7 @@ fc_symbol::fc_symbol(QObject* parent) : QObject(parent)
 }
 //-------------------------------------------------------------------------------------------
 fc_symbol::~fc_symbol()
-{   
-    if(est_show != nullptr){
-        delete [] est_show;
-        delete [] show_symbol;
-        delete [] show_data;
-
-        delete [] show_est_data;
-    }
+{
 }
 //-------------------------------------------------------------------------------------------
 void fc_symbol::init(dvbt2_parameters _dvbt2, pilot_generator* _pilot,
@@ -71,11 +64,13 @@ void fc_symbol::init(dvbt2_parameters _dvbt2, pilot_generator* _pilot,
     fc_pilot_refer = pilot->fc_pilot_refer.data();
     h_even_fc = address->h_even_fc;
     h_odd_fc = address->h_odd_fc;
-    est_show = new complex[fft_size];
-    show_symbol = new complex[fft_size];
-    show_data = new complex[n_fc];
+#if 0
+    est_show.resize(fft_size);
+#endif
+    show_symbol.resize(fft_size);
+    show_data.resize(n_fc);
 
-    show_est_data = new complex[k_total];
+    show_est_data.resize(k_total);
 }
 //-------------------------------------------------------------------------------------------
 void fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, float &_phase_offset, std::vector<complex> &out)
@@ -95,7 +90,9 @@ void fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, float &
     complex sum_dif_2 = {0.0f, 0.0f};
     complex sum_pilot_1 = {0.0f, 0.0f};
     complex sum_pilot_2 = {0.0f, 0.0f};
+#if 0
     int len_show = 0;
+#endif
     float pilot_refer;
     float amp_pilot = amp_sp;
     complex cell;
@@ -166,9 +163,11 @@ void fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, float &
             angle_est = angle;
             amp_est = amp;
             //Only for show
+#if 0
             est_show[len_show].real(angle);
             est_show[len_show].imag(amp);
             ++len_show;
+#endif
             // ...
             break;
         case TRPAPR_CARRIER:
@@ -194,9 +193,11 @@ void fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, float &
         angle = atan2_approx(est_pilot.imag(), est_pilot.real());
         amp = sqrt(norm(cell)) / amp_pilot;
         //Only for show
+#if 0
         est_show[len_show].real(angle);
         est_show[len_show].imag(amp);
         ++len_show;
+#endif
         // ...
         break;
     case TRPAPR_CARRIER:
@@ -244,9 +245,11 @@ void fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, float &
             angle_est = angle;
             amp_est = amp;
             //Only for show
+#if 0
             est_show[len_show].real(angle);
             est_show[len_show].imag(amp);
             ++len_show;
+#endif
             // ...
             break;
         case TRPAPR_CARRIER:
@@ -267,8 +270,8 @@ void fc_symbol::execute(complex* _ofdm_cell, float &_sample_rate_offset, float &
     int len = n_fc;
     if(enabled_display)
     {
-        memcpy(show_symbol, _ofdm_cell, sizeof(complex) * static_cast<unsigned int>(fft_size));
-        memcpy(show_data, deinterleaved_cell, sizeof(complex) * static_cast<unsigned int>(len));
+        memcpy(&show_symbol[0], _ofdm_cell, sizeof(complex) * static_cast<unsigned int>(fft_size));
+        memcpy(&show_data[0], deinterleaved_cell, sizeof(complex) * static_cast<unsigned int>(len));
         emit replace_spectrograph(fft_size, &show_symbol[0]);
         emit replace_constelation(len, &show_data[0]);
     }

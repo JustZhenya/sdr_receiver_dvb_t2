@@ -16,6 +16,7 @@
 #define FC_SYMBOL_H
 
 #include <QObject>
+#include <vector>
 
 #include "dvbt2_definition.h"
 #include "pilot_generator.h"
@@ -59,10 +60,10 @@ private:
     int idx_symbol;
     int* h_even_fc;
     int* h_odd_fc;
-    complex* est_show = nullptr;
-    complex* show_symbol = nullptr;
-    complex* show_data = nullptr;
-    complex* show_est_data = nullptr;
+    std::vector<complex> est_show{};
+    std::vector<complex> show_symbol{};
+    std::vector<complex> show_data{};
+    std::vector<complex> show_est_data{};
     bool enabled_display = false;
 };
 
