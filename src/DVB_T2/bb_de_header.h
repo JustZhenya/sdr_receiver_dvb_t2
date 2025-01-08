@@ -19,7 +19,10 @@
 #include <QMutex>
 #include <QWaitCondition>
 #include <QUdpSocket>
+#include <QTextStream>
+#include <QDataStream>
 #include <QFile>
+#include <array>
 
 #include "dvbt2_definition.h"
 
@@ -87,13 +90,13 @@ private:
     bool split = false;
     uint8_t buffer[TRANSPORT_PACKET_LENGTH];
 
+    static constexpr int len{53840 / 8 + TRANSPORT_PACKET_LENGTH * 2}; //split tail ?
     int need_plp = 0;
-    uint8_t* begin_out;
     uint8_t* out;
-    int len;
-    char* buffer_out;
-    QFile* file = nullptr;
-    QDataStream* stream;
+    std::array<uint8_t, len> begin_out{};
+    std::array<char, len> buffer_out{};
+    QFile file{};
+    QDataStream stream{};
     QUdpSocket* socket;
     int id_current_out = out_network;
     QString file_name = "out_dvbt2.ts";

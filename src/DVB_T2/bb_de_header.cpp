@@ -15,7 +15,6 @@
 #include "bb_de_header.h"
 
 #include <QMessageBox>
-#include <QTextStream>
 
 //#include <QDebug>
 
@@ -31,14 +30,10 @@ bb_de_header::bb_de_header(QWaitCondition *_signal_in, QMutex *_mutex_in, QObjec
     mutex_in(_mutex_in)
 {
     init_crc8_table();
-    len = 53840 / 8 + TRANSPORT_PACKET_LENGTH * 2;//split tail ?
-    out = new uint8_t[len];
-    begin_out = out;
-    buffer_out = new char[len];
+    out = &begin_out[0];
 
-    stream = new QDataStream;
     #if 0
-    stream->setVersion(QDataStream::Qt_5_15);
+    stream.setVersion(QDataStream::Qt_5_15);
     #endif
 
     socket = new QUdpSocket(this);
@@ -47,12 +42,7 @@ bb_de_header::bb_de_header(QWaitCondition *_signal_in, QMutex *_mutex_in, QObjec
 bb_de_header::~bb_de_header()
 {
     if(socket->isOpen()) socket->close();
-    delete socket;
-    if(file != nullptr) {
-        if(file->isOpen()) file->close();
-        delete file;
-    }
-    delete [] out;
+    if(file.isOpen()) file.close();
 }
 //------------------------------------------------------------------------------------------
 void bb_de_header::init_crc8_table()
@@ -92,7 +82,6 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
 //                return;
 
     l1_postsignalling l1_post = _l1_post;
-    int len_in = _len_in;
     uint8_t* in = _in;
     dvbt2_inputmode_t mode;
     int errors = 0;
@@ -432,15 +421,15 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
             }
         }
     }
-    out = begin_out;
-    memcpy(buffer_out, out, sizeof(uint8_t) * static_cast<unsigned long>(len_out));
+    out = &begin_out[0];
+    memcpy(&buffer_out[0], &out[0], sizeof(uint8_t) * static_cast<unsigned long>(len_out));
 
     switch(id_current_out){
     case out_network:
-        socket->writeDatagram(buffer_out, len_out, QHostAddress::LocalHost, num_port_udp);// $ vlc udp://@:7654
+        socket->writeDatagram(&buffer_out[0], len_out, QHostAddress::LocalHost, num_port_udp);// $ vlc udp://@:7654
         break;
     case out_file:
-        stream->writeRawData(buffer_out, len_out);
+        stream.writeRawData(&buffer_out[0], len_out);
         break;
     }
 
@@ -507,22 +496,17 @@ void bb_de_header::set_out(id_out _id_current_out, int _num_port_udp,
     num_port_udp = static_cast<unsigned short>(_num_port_udp);
     need_plp = _need_plp;
     if(id_current_out == out_file){
-        if(file != nullptr) {
-            if(file->isOpen()) file->close();
-            delete file;
-        }
-        file = new QFile(file_name);
-        if(file->open(QIODevice::WriteOnly)) {
-            stream->setDevice(file);
+        if(file.isOpen()) file.close();
+        file.setFileName(file_name);
+        if(file.open(QIODevice::WriteOnly)) {
+            stream.setDevice(&file);
         }
         else{
-            QMessageBox::information(nullptr, "error", file->errorString());
+            QMessageBox::information(nullptr, "error", file.errorString());
         }
     }
     else{
-        if(file != nullptr) {
-            if(file->isOpen()) file->close();
-        }
+        if(file.isOpen()) file.close();
     }
 }
 //_____________________________________________________________________________________________
