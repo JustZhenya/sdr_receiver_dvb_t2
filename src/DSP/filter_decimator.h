@@ -14,8 +14,7 @@ class filter_decimator
 {
 private:
     complex* buffer;
-    unsigned int idx_write_buffer;
-    unsigned int idx_read_buffer;
+    unsigned int idx_buffer;
     unsigned int wrap_point;
     unsigned int begin_point;
     unsigned int len_copy;
@@ -54,12 +53,11 @@ public:
             h_complex[j++] = static_cast<float>(h_fir[i]);
             h_complex[j++] = static_cast<float>(h_fir[i]);
         }
-        buffer = static_cast<complex*>(_mm_malloc(len_buffer * sizeof(complex), 32));
-        for (unsigned int i = 0; i < len_buffer; ++i) buffer[i] = {0.0f, 0.0f};
+        buffer = static_cast<complex*>(_mm_malloc(len_buffer * 2 * sizeof(complex), 32));
+        for (unsigned int i = 0; i < len_buffer * 2; ++i) buffer[i] = {0.0f, 0.0f};
         wrap_point = len_buffer / 2 + 1;
         begin_point = len_buffer / 2 - 1;
-        idx_write_buffer = begin_point;
-        idx_read_buffer = 0;
+        idx_buffer = begin_point;
         len_copy = sizeof(complex) * begin_point;
     }
     //-----------------------------------------------------------------------------------------------
@@ -81,15 +79,11 @@ public:
         __m256 sum0, sum1, sumt, sum;
         float* st = static_cast<float*>(_mm_malloc(sizeof(float) * 8, 32));
         for (int x = 0; x < len_in; ++x) {
-            if(idx_write_buffer == len_buffer){
-                memmove(buffer, &buffer[wrap_point], len_copy);
-                idx_write_buffer = begin_point;
-                idx_read_buffer = 0;
-            }
-            buffer[idx_write_buffer] = _in[x];
-            idx_write_buffer++;
-            ptr_buffer = reinterpret_cast<float*>(buffer + idx_read_buffer);
-            ++idx_read_buffer;
+            buffer[idx_buffer] = buffer[idx_buffer + len_buffer] = _in[x];
+            idx_buffer++;
+            if(idx_buffer == len_buffer)
+                idx_buffer = 0;
+            ptr_buffer = reinterpret_cast<float*>(buffer + idx_buffer);
             ++d;
             if(d == DECIMATION_STEP){
                 d = 0;
