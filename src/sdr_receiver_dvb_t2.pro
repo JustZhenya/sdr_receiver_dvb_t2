@@ -78,6 +78,7 @@ SOURCES += \
 equals(hackrf,1): SOURCES += rx_hackrf.cpp
 equals(sdrplay,1): SOURCES += rx_sdrplay.cpp
 equals(miri,1): SOURCES += rx_miri.cpp
+equals(usrp,1): SOURCES += rx_usrp.cpp
 
 unix:{
 SOURCES += \
@@ -131,6 +132,8 @@ equals(hackrf,1): HEADERS += rx_hackrf.h
 equals(sdrplay,1): SOURCES += rx_sdrplay.h
 !isEmpty(MIRI_INCLUDE_DIR): QMAKE_CXXFLAGS += -I$${MIRI_INCLUDE_DIR}
 equals(miri,1): HEADERS += rx_miri.h
+!isEmpty(USRP_INCLUDE_DIR): QMAKE_CXXFLAGS += -I$${USRP_INCLUDE_DIR}
+equals(usrp,1): HEADERS += rx_usrp.h
 
 unix:{
 HEADERS += \
@@ -155,6 +158,10 @@ equals(hackrf,1): QMAKE_CXXFLAGS += -DUSE_HACKRF
 !isEmpty(MIRI_LIB_DIR): LIBS += -L$${MIRI_LIB_DIR}
 equals(miri,1): LIBS += -lmirisdr
 equals(miri,1): QMAKE_CXXFLAGS += -DUSE_MIRI
+equals(usrp,1): LIBS += -luhd
+!isEmpty(USRP_LIB_DIR): LIBS += -L$${USRP_LIB_DIR}
+equals(usrp,1): LIBS += -lboost_system
+equals(usrp,1): QMAKE_CXXFLAGS += -DUSE_USRP
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

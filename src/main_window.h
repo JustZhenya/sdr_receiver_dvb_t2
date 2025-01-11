@@ -31,6 +31,9 @@
 #ifdef USE_MIRI
 #include "rx_miri.h"
 #endif
+#ifdef USE_USRP
+#include "rx_usrp.h"
+#endif
 #include "plot.h"
 #include "DVB_T2/dvbt2_demodulator.h"
 
@@ -80,6 +83,11 @@ private slots:
     void status_miri(int _err);
     void finished_miri();
 #endif
+#ifdef USE_USRP
+    void open_usrp();
+    void status_usrp(int _err);
+    void finished_usrp();
+#endif
 
     void update_buffered(int nbuffers, int totalbuffers);
 
@@ -125,6 +133,10 @@ private:
     int start_miri();
     int start_sdrplay();
     int start_airspy();
+#ifdef USE_USRP
+    rx_usrp* ptr_usrp;
+#endif
+    int start_usrp();
 #ifndef WIN32
     rx_plutosdr* ptr_plutosdr;
     int start_plutosdr();

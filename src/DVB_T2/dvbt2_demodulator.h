@@ -40,6 +40,7 @@ enum id_device_t{
     id_plutosdr,
     id_hackrf,
     id_miri,
+    id_usrp,
 };
 
 struct signal_estimate{

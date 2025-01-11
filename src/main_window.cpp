@@ -30,6 +30,9 @@ main_window::main_window(QWidget *parent)
 #ifdef USE_MIRI
     ptr_miri(nullptr),
 #endif
+#ifdef USE_USRP
+    ptr_usrp(nullptr),
+#endif
     ptr_plutosdr(nullptr)
 {
     ui->setupUi(this);
@@ -60,6 +63,11 @@ main_window::main_window(QWidget *parent)
     QAction * action_miri = new QAction("Miri SDR", this);
     ui->menu_open->addAction(action_miri);
     connect(action_miri, SIGNAL(triggered()), this, SLOT(open_miri()));
+#endif
+#ifdef USE_USRP
+    QAction * action_usrp = new QAction("USRP SDR", this);
+    ui->menu_open->addAction(action_usrp);
+    connect(action_usrp, SIGNAL(triggered()), this, SLOT(open_usrp()));
 #endif
     connect(ui->action_exit, SIGNAL(triggered()), this, SLOT(close()));
 
@@ -455,6 +463,75 @@ void main_window::finished_miri()
     thread = nullptr;
 }
 #endif
+#ifdef USE_USRP
+void main_window::open_usrp()
+{
+    int err;
+    std::string ser_no;
+    std::string hw_ver;
+    if(ptr_usrp)
+        delete ptr_usrp;
+    ptr_usrp = new rx_usrp;
+    err = ptr_usrp->get(ser_no, hw_ver);
+    ui->text_log->insertPlainText("Get USRP:" +
+                                  QString::fromStdString(ptr_usrp->error(err)) + "\n");
+    if(err < 0) return;
+
+    ui->label_name->setText("Name : USRP SDR");
+    ui->label_ser_no->setText("Serial No : " + QString::fromStdString(ser_no));
+    ui->label_hw_ver->setText("HW: " + QString::fromStdString(hw_ver));
+    ui->label_gain->setText("gain (0-73):");
+
+    id_device = id_usrp;
+    ui->push_button_start->setEnabled(true);
+
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+int main_window::start_usrp()
+{
+    uint64_t rf_fraquency_hz;
+    int gain;
+    int err;
+    rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
+    gain = static_cast<uint8_t>(ui->spinBoxGain->value());
+    if(ui->check_box_agc->isChecked()) gain = -1;
+    err = ptr_usrp->init(rf_fraquency_hz, gain);
+    ui->text_log->insertPlainText("Init USRP SDR:"  " "  +
+                                  QString::fromStdString(ptr_usrp->error(err)) + "\n");
+    if(err !=0) return err;
+
+    thread = new QThread;
+    thread->setObjectName("rx_usrp");
+    ptr_usrp->moveToThread(thread);
+    connect(thread, SIGNAL(started()), ptr_usrp, SLOT(start()));
+    connect(this,SIGNAL(stop_device()),ptr_usrp,SLOT(stop()),Qt::DirectConnection);
+    connect(ptr_usrp, SIGNAL(finished()), ptr_usrp, SLOT(deleteLater()));
+    connect(ptr_usrp, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
+    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    connect(thread, SIGNAL(finished()), this, SLOT(finished_usrp()));
+    thread->start(QThread::TimeCriticalPriority);
+
+    connect(ptr_usrp, &rx_usrp::status, this, &main_window::status_usrp);
+    connect(ptr_usrp, &rx_usrp::radio_frequency, this, &main_window::radio_frequency);
+    connect(ptr_usrp, &rx_usrp::level_gain, this, &main_window::level_gain);
+    connect(ptr_usrp, &rx_usrp::buffered, this, &main_window::update_buffered, Qt::QueuedConnection);
+    connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_usrp,SLOT(set_gain_db(int)),Qt::DirectConnection);
+
+    return 0;
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::status_usrp(int _err)
+{
+    ui->text_log->insertPlainText("Status USRP SDR:"  " "  +
+                                  QString::fromStdString(ptr_usrp->error(_err)) + "\n");
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::finished_usrp()
+{
+    ptr_usrp = nullptr;
+    thread = nullptr;
+}
+#endif
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::update_buffered(int nbuffers, int totalbuffers)
 {
@@ -476,6 +553,12 @@ void main_window::update_buffered(int nbuffers, int totalbuffers)
 #ifdef USE_MIRI
         ptr_miri->set_rf_frequency();
         ptr_miri->set_gain();
+#endif
+        break;
+    case id_usrp:
+#ifdef USE_USRP
+        ptr_usrp->set_rf_frequency();
+        ptr_usrp->set_gain();
 #endif
         break;
     }
@@ -521,6 +604,14 @@ void main_window::on_push_button_start_clicked()
         if(start_miri() != 0) return;
 
         dvbt2 = ptr_miri->demodulator;
+#endif
+        break;
+    case id_usrp:
+
+#ifdef USE_USRP
+        if(start_usrp() != 0) return;
+
+        dvbt2 = ptr_usrp->demodulator;
 #endif
         break;
     }
@@ -610,6 +701,8 @@ void main_window::radio_frequency(double _rf)
         break;
     case id_miri:
         break;
+    case id_usrp:
+        break;
     }
     
 }
@@ -632,6 +725,9 @@ void main_window::level_gain(int _gain)
         //ptr_hackrf->set_gain();
         break;
     case id_miri:
+        str_gain = "gain :   ";
+        break;
+    case id_usrp:
         str_gain = "gain :   ";
         break;
     }
