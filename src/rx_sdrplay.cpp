@@ -129,7 +129,7 @@ mir_sdr_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
 
-    signal = new signal_estimate;
+    signal.agc = agc;
 
     reset();
 
@@ -138,16 +138,16 @@ mir_sdr_ErrT rx_sdrplay::init(double _rf_frequence, int _gain_db)
 //-------------------------------------------------------------------------------------------
 void rx_sdrplay::reset()
 {
-    signal->reset = false;
+    signal.reset = false;
     rf_frequency = ch_frequency;
-    signal->coarse_freq_offset = 0.0;
-    signal->change_frequency = true;
-    signal->correct_resample = 0.0;
+    signal.coarse_freq_offset = 0.0;
+    signal.change_frequency = true;
+    signal.correct_resample = 0.0;
     if(agc) {
         gain_db = 78;
     }
-    signal->gain_offset = 0;
-    signal->change_gain = true;
+    signal.gain_offset = 0;
+    signal.change_gain = true;
     ptr_i_bubber = i_buffer_a;
     ptr_q_buffer = q_buffer_a;
     swap_buffer = true;
@@ -162,15 +162,15 @@ void rx_sdrplay::reset()
 //-------------------------------------------------------------------------------------------
 void rx_sdrplay::set_rf_frequency()
 {
-    if(!signal->frequency_changed){
-        signal->frequency_changed = frequency_changed;
+    if(!signal.frequency_changed){
+        signal.frequency_changed = frequency_changed;
     }
-    if(signal->change_frequency) {
-        signal->change_frequency = false;
+    if(signal.change_frequency) {
+        signal.change_frequency = false;
         frequency_changed = false;
-        signal->frequency_changed = false;
-        signal->correct_resample = signal->coarse_freq_offset / rf_frequency;
-        rf_frequency += signal->coarse_freq_offset;
+        signal.frequency_changed = false;
+        signal.correct_resample = signal.coarse_freq_offset / rf_frequency;
+        rf_frequency += signal.coarse_freq_offset;
         mir_sdr_ErrT err = mir_sdr_SetRf(rf_frequency, 1, 0);
         if(err != 0) {
             emit status(err);
@@ -183,14 +183,14 @@ void rx_sdrplay::set_rf_frequency()
 //-------------------------------------------------------------------------------------------
 void rx_sdrplay::set_gain()
 {
-    if(!signal->gain_changed){
-        signal->gain_changed = gain_changed;
+    if(!signal.gain_changed){
+        signal.gain_changed = gain_changed;
     }
-    if(agc && signal->change_gain) {
-        signal->change_gain = false;
+    if(agc && signal.change_gain) {
+        signal.change_gain = false;
         gain_changed = false;
-        signal->gain_changed = false;
-        gain_db -= signal->gain_offset;
+        signal.gain_changed = false;
+        gain_db -= signal.gain_offset;
         mir_sdr_ErrT err = mir_sdr_SetGr(gain_db, 1, 0);
         if(err != 0) {
             emit status(err);
@@ -227,14 +227,14 @@ void rx_sdrplay::start()
                 gr_changed = 0;
                 gain_changed = true;
             }
-            conv.execute(0,len_out_device, &i_buffer, &q_buffer, ptr_buffer, level_detect, *signal);
+            conv.execute(0,len_out_device, &i_buffer, &q_buffer, ptr_buffer, level_detect, signal);
             len_buffer += len_out_device;
             ptr_buffer += len_out_device;
         }
 
         if(demodulator->mutex->try_lock()) {
 
-            if(signal->reset){
+            if(signal.reset){
                 reset();
 
                 demodulator->mutex->unlock();
@@ -248,11 +248,11 @@ void rx_sdrplay::start()
             set_gain();
 
             if(swap_buffer) {
-                emit execute(len_buffer, &buffer_a[0], level_detect, signal);
+                emit execute(len_buffer, &buffer_a[0], level_detect, &signal);
                 ptr_buffer = buffer_b.data();
             }
             else {
-                emit execute(len_buffer, &buffer_b[0], level_detect, signal);
+                emit execute(len_buffer, &buffer_b[0], level_detect, &signal);
                 ptr_buffer = buffer_a.data();
             }
             swap_buffer = !swap_buffer;

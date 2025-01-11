@@ -50,13 +50,14 @@ public slots:
     void stop();
     void set_rf_frequency();
     void set_gain(bool force=false);
+    void set_gain_db(int gain);
 private:
     void rx_execute(void *ptr, int nsamples);
     static void callback(unsigned char *buf, uint32_t len, void *context);
 
 private:
     QThread* thread;
-    signal_estimate* signal;
+    signal_estimate signal{};
 
     int gain_db;
     bool gain_changed;

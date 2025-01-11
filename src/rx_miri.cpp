@@ -99,7 +99,7 @@ int rx_miri::init(double _rf_frequency, int _gain_db)
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
 
-    signal = new signal_estimate;
+    signal.agc = agc;
 
     reset();
 
@@ -108,16 +108,16 @@ int rx_miri::init(double _rf_frequency, int _gain_db)
 //-------------------------------------------------------------------------------------------
 void rx_miri::reset()
 {
-    signal->reset = false;
+    signal.reset = false;
     rf_frequency = ch_frequency;
-    signal->coarse_freq_offset = 0.0;
-    signal->change_frequency = true;
-    signal->correct_resample = 0.0;
+    signal.coarse_freq_offset = 0.0;
+    signal.change_frequency = true;
+    signal.correct_resample = 0.0;
     if(agc) {
         gain_db = 20;
     }
-    signal->gain_offset = 0;
-    signal->change_gain = true;
+    signal.gain_offset = 0;
+    signal.change_gain = true;
     ptr_buffer = buffer_a.data();
     swap_buffer = true;
     len_buffer = 0;
@@ -131,28 +131,28 @@ void rx_miri::reset()
 //-------------------------------------------------------------------------------------------
 void rx_miri::set_rf_frequency()
 {
-//    printf("rx_miri::set_rf_frequency %f\n", signal->coarse_freq_offset);
-    if(!signal->frequency_changed){
+//    printf("rx_miri::set_rf_frequency %f\n", signal.coarse_freq_offset);
+    if(!signal.frequency_changed){
         end_wait_frequency_changed = clock();
         float mseconds = (end_wait_frequency_changed - start_wait_frequency_changed) /
                          (CLOCKS_PER_SEC / 1000);
         if(mseconds > 100) {
-            signal->frequency_changed = true;
+            signal.frequency_changed = true;
             emit radio_frequency(rf_frequency);
         }
     }
-    if(signal->change_frequency) {
-        signal->change_frequency = false;
+    if(signal.change_frequency) {
+        signal.change_frequency = false;
         frequency_changed = false;
-        signal->frequency_changed = false;
-        signal->correct_resample = signal->coarse_freq_offset / rf_frequency;
-        rf_frequency += signal->coarse_freq_offset;
+        signal.frequency_changed = false;
+//        signal.correct_resample = signal.coarse_freq_offset / rf_frequency;
+        rf_frequency += signal.coarse_freq_offset;
         int err=mirisdr_set_center_freq( _dev, uint32_t(rf_frequency) );
         if(err != 0) {
             emit status(err);
         }
         else{
-            signal->frequency_changed = false;
+            signal.frequency_changed = false;
             start_wait_frequency_changed = clock();
         }
     }
@@ -160,28 +160,41 @@ void rx_miri::set_rf_frequency()
 //-------------------------------------------------------------------------------------------
 void rx_miri::set_gain(bool force)
 {
-    if(!signal->gain_changed){
+    if(!signal.gain_changed){
         end_wait_gain_changed = clock();
         float mseconds = (end_wait_gain_changed - start_wait_gain_changed) /
                          (CLOCKS_PER_SEC / 1000);
         if(mseconds > 20) {
-            signal->gain_changed = true;
+            signal.gain_changed = true;
             emit level_gain(gain_db);
         }
     }
-    if((agc && signal->change_gain) || force) {
-        signal->change_gain = false;
+    if((agc && signal.change_gain) || force) {
+        signal.change_gain = false;
         gain_changed = false;
-        signal->gain_changed = false;
-        gain_db += signal->gain_offset;
+        signal.gain_changed = false;
+        gain_db += signal.gain_offset;
         int err=mirisdr_set_tuner_gain( _dev, gain_db );
         if(err != 0) {
             emit status(err);
         }
         else{
-            signal->gain_changed = false;
+            signal.gain_changed = false;
             start_wait_gain_changed = clock();
         }
+    }
+}
+//----------------------------------------------------------------------------------------------------------------------------
+void rx_miri::set_gain_db(int gain)
+{
+    int err=mirisdr_set_tuner_gain( _dev, gain );
+    gain_db = gain;
+    if(err != 0) {
+        emit status(err);
+    }
+    else{
+        signal.gain_changed = false;
+        start_wait_gain_changed = clock();
     }
 }
 //----------------------------------------------------------------------------------------------------------------------------
@@ -200,13 +213,13 @@ void rx_miri::rx_execute(void *in_ptr, int nsamples)
     if(!done)
         return;
     float level_detect=std::numeric_limits<float>::max();
-    conv.execute(0,nsamples / 2, &ptr[0], &ptr[1],ptr_buffer,level_detect,*signal);
+    conv.execute(0,nsamples / 2, &ptr[0], &ptr[1],ptr_buffer,level_detect,signal);
     len_buffer += nsamples / 2;
     ptr_buffer += nsamples / 2;
 
     if(demodulator->mutex->try_lock()) {
 
-        if(signal->reset){
+        if(signal.reset){
             reset();
 
             demodulator->mutex->unlock();
@@ -223,11 +236,11 @@ void rx_miri::rx_execute(void *in_ptr, int nsamples)
         #endif
 
         if(swap_buffer) {
-            emit execute(len_buffer, &buffer_a[0], level_detect, signal);
+            emit execute(len_buffer, &buffer_a[0], level_detect, &signal);
             ptr_buffer = buffer_b.data();
         }
         else {
-            emit execute(len_buffer, &buffer_b[0], level_detect, signal);
+            emit execute(len_buffer, &buffer_b[0], level_detect, &signal);
             ptr_buffer = buffer_a.data();
         }
         swap_buffer = !swap_buffer;

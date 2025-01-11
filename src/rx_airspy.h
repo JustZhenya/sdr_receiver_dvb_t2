@@ -55,7 +55,7 @@ private:
 
     static int rx_callback(airspy_transfer_t* transfer);
 
-    signal_estimate* signal;
+    signal_estimate signal{};
 
     float frequency_offset = 0.0f;
     bool change_frequency = false;

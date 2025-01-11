@@ -48,7 +48,7 @@ private:
     complex* ptr_buffer;
     bool swap_buffer = true;
 
-    signal_estimate* signal;
+    signal_estimate signal{};
 
     int64_t rf_bandwidth_hz;
     int64_t sample_rate_hz;

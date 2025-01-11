@@ -124,7 +124,7 @@ int rx_plutosdr::init(uint64_t _rf_frequence_hz, int _gain)
     buffer_a.resize(max_len_out);
     buffer_b.resize(max_len_out);
 
-    signal = new signal_estimate;
+    signal.agc = agc;
 
     demodulator = new dvbt2_demodulator(id_plutosdr, static_cast<float>(sample_rate_hz));
     thread = new QThread;
@@ -149,16 +149,16 @@ void rx_plutosdr::start()
 //-------------------------------------------------------------------------------------------
 void rx_plutosdr::reset()
 {
-    signal->reset = false;
+    signal.reset = false;
     rf_frequency = ch_frequency;
-    signal->coarse_freq_offset = 0.0;
-    signal->change_frequency = true;
-    signal->correct_resample = 0.0;
+    signal.coarse_freq_offset = 0.0;
+    signal.change_frequency = true;
+    signal.correct_resample = 0.0;
     if(agc) {
         gain_db = 0;
     }
-    signal->gain_offset = 0;
-    signal->change_gain = true;
+    signal.gain_offset = 0;
+    signal.change_gain = true;
     ptr_buffer = &buffer_a[0];
     swap_buffer = true;
     len_buffer = 0;
@@ -170,25 +170,25 @@ void rx_plutosdr::reset()
 //-------------------------------------------------------------------------------------------
 void rx_plutosdr::set_rf_frequency()
 {
-    if(!signal->frequency_changed) {
+    if(!signal.frequency_changed) {
         end_wait_frequency_changed = clock();
         float mseconds = (end_wait_frequency_changed - start_wait_frequency_changed) /
                          (CLOCKS_PER_SEC / 1000);
         if(mseconds > 200) {
-            signal->frequency_changed = true;
+            signal.frequency_changed = true;
             emit radio_frequency(rf_frequency);
         }
     }
-    if(signal->change_frequency) {
-        signal->change_frequency = false;
-        signal->correct_resample = signal->coarse_freq_offset / static_cast<double>(rf_frequency);
-        rf_frequency += static_cast<uint64_t>(signal->coarse_freq_offset);
+    if(signal.change_frequency) {
+        signal.change_frequency = false;
+        signal.correct_resample = signal.coarse_freq_offset / static_cast<double>(rf_frequency);
+        rf_frequency += static_cast<uint64_t>(signal.coarse_freq_offset);
         int err = plutosdr_set_rxlo(device, rf_frequency);
         if(err < 0) {
             emit status(err);
         }
         else{
-            signal->frequency_changed = false;
+            signal.frequency_changed = false;
             start_wait_frequency_changed = clock();
         }
     }
@@ -196,18 +196,18 @@ void rx_plutosdr::set_rf_frequency()
 //-------------------------------------------------------------------------------------------
 void rx_plutosdr::set_gain()
 {
-    if(!signal->gain_changed) {
+    if(!signal.gain_changed) {
         end_wait_gain_changed = clock();
         float mseconds = (end_wait_gain_changed - start_wait_gain_changed) /
                          (CLOCKS_PER_SEC / 1000);
         if(mseconds > 70) {
-            signal->gain_changed = true;
+            signal.gain_changed = true;
             emit level_gain(gain_db);
         }
     }
-    if(agc && signal->change_gain) {
-        signal->change_gain = false;
-        gain_db += signal->gain_offset;
+    if(agc && signal.change_gain) {
+        signal.change_gain = false;
+        gain_db += signal.gain_offset;
         if(gain_db == 71) {
             gain_db = 0;
         }
@@ -216,7 +216,7 @@ void rx_plutosdr::set_gain()
             emit status(err);
         }
         else{
-            signal->gain_changed = false;
+            signal.gain_changed = false;
             start_wait_gain_changed = clock();
         }
     }
@@ -242,13 +242,13 @@ int rx_plutosdr::plutosdr_callback(plutosdr_transfer* _transfer)
 void rx_plutosdr::rx_execute(int16_t* _rx_i, int16_t* _rx_q)
 {
     float level_detect=std::numeric_limits<float>::max();
-    conv.execute(0,len_out_device, _rx_i, _rx_q,ptr_buffer,level_detect,*signal);
+    conv.execute(0,len_out_device, _rx_i, _rx_q,ptr_buffer,level_detect,signal);
     len_buffer += len_out_device;
     ptr_buffer += len_out_device;
 
     if(demodulator->mutex->try_lock()) {
 
-        if(signal->reset){
+        if(signal.reset){
             reset();
 
             demodulator->mutex->unlock();
@@ -262,11 +262,11 @@ void rx_plutosdr::rx_execute(int16_t* _rx_i, int16_t* _rx_q)
         set_gain();
 
         if(swap_buffer) {
-            emit execute(len_buffer, &buffer_a[0], level_detect, signal);
+            emit execute(len_buffer, &buffer_a[0], level_detect, &signal);
             ptr_buffer = buffer_b.data();
         }
         else {
-            emit execute(len_buffer, &buffer_b[0], level_detect, signal);
+            emit execute(len_buffer, &buffer_b[0], level_detect, &signal);
             ptr_buffer = buffer_a.data();
         }
         swap_buffer = !swap_buffer;
@@ -298,7 +298,6 @@ void rx_plutosdr::stop()
     reboot();
     emit stop_demodulator();
     if(thread->isRunning()) thread->wait(1000);
-    delete signal;
     emit finished();
 }
 //-------------------------------------------------------------------------------------------

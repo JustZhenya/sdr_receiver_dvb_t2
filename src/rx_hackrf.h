@@ -49,13 +49,14 @@ public slots:
     void stop();
     void set_rf_frequency();
     void set_gain(bool force=false);
+    void set_gain_db(int gain);
 private:
     void rx_execute(void *ptr, int nsamples);
     static int callback(hackrf_transfer* transfer);
 
 private:
     QThread* thread;
-    signal_estimate* signal;
+    signal_estimate signal{};
 
     int gain_db;
     bool gain_changed;
@@ -70,8 +71,8 @@ private:
     std::vector<complex> buffer_b;
     complex* ptr_buffer;
     int  blocks = 1;
-    const int len_out_device = 128*1024;
-    const int max_blocks = 256 * 4;
+    const int len_out_device = 128*1024*4;
+    const int max_blocks = 256;
     int len_buffer = 0;
     bool swap_buffer = true;
     
@@ -92,6 +93,7 @@ private:
     int err;
     convert_iq<int8_t> conv{};
 
+    int set_gain_internal(int gain);
     void reset();
 };
 

@@ -52,6 +52,7 @@ struct signal_estimate{
     double correct_resample = 0.0;
     bool reset = false;
     bool p1_reset = false;
+    bool agc = false;
 };
 
 template<typename T> struct convert_iq
@@ -88,7 +89,7 @@ template<typename T> struct convert_iq
         c2 = sqrtf(c_temp * c_temp - c1 * c1);
         //___level gain estimation___
         level_detect = theta2 * theta3;
-        if(signal_.gain_changed) {
+        if(signal_.gain_changed && signal_.agc) {
             if(level_detect < level_min) {
                 signal_.gain_offset = 1;
                 signal_.change_gain = true;

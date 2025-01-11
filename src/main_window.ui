@@ -181,19 +181,6 @@
              </property>
             </widget>
            </item>
-           <item row="5" column="2">
-            <widget class="QLineEdit" name="line_edit_gain">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string>72</string>
-             </property>
-             <property name="maxLength">
-              <number>32765</number>
-             </property>
-            </widget>
-           </item>
            <item row="5" column="0" colspan="2">
             <widget class="QLabel" name="label_gain">
              <property name="text">
@@ -244,6 +231,24 @@
              </property>
              <property name="singleStep">
               <number>8000000</number>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="2">
+            <widget class="QSpinBox" name="spinBoxGain">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <strikeout>false</strikeout>
+              </font>
+             </property>
+             <property name="suffix">
+              <string>db</string>
+             </property>
+             <property name="maximum">
+              <number>110</number>
              </property>
             </widget>
            </item>

@@ -56,6 +56,7 @@ signals:
     void set_out(bb_de_header::id_out _id_current_out, int _num_port_udp,
                  QString _file_name, int _need_plp);
     void stop_device();
+    void gain_manual(int gain);
 
 private slots:
 #ifdef USE_SDRPLAY

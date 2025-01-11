@@ -52,7 +52,7 @@ public slots:
 
 private:
     QThread* thread;
-    signal_estimate* signal;
+    signal_estimate signal{};
 
     int gain_db;
     bool gain_changed;

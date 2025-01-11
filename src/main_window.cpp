@@ -127,8 +127,7 @@ main_window::~main_window()
 //------------------------------------------------------------------------------------------------
 void main_window::on_check_box_agc_stateChanged(int arg1)
 {
-    if(arg1 == 2) ui->line_edit_gain->setEnabled(false);
-    else ui->line_edit_gain->setEnabled(true);
+    ui->spinBoxGain->setEnabled(!(arg1 == 2));
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 #ifdef USE_SDRPLAY
@@ -158,7 +157,7 @@ int main_window::start_sdrplay()
     int gain_db;
     int err;
     rf_fraquency = ui->spinBoxRF->text().toDouble();
-    gain_db = ui->line_edit_gain->text().toInt();
+    gain_db = ui->spinBoxGain->value();
     if(ui->check_box_agc->isChecked()) gain_db = -1;
     err = ptr_sdrplay->init(rf_fraquency, gain_db);
     ui->text_log->insertPlainText("Init SdrPlay:"  " "  +
@@ -178,6 +177,9 @@ int main_window::start_sdrplay()
     connect(ptr_sdrplay, &rx_sdrplay::status, this, &main_window::status_sdrplay);
     connect(ptr_sdrplay, &rx_sdrplay::radio_frequency, this, &main_window::radio_frequency);
     connect(ptr_sdrplay, &rx_sdrplay::level_gain, this, &main_window::level_gain);
+#if 0
+   connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_sdrplay,SLOT(set_gain_db(int)),Qt::DirectConnection);
+#endif
     return 0;
 }
 //------------------------------------------------------------------------------------------------
@@ -215,7 +217,7 @@ int main_window::start_airspy()
     int gain;
     int err;
     rf_fraquency_hz = static_cast<uint32_t>(ui->spinBoxRF->text().toULong());
-    gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
+    gain = static_cast<uint8_t>(ui->spinBoxGain->value());
     if(ui->check_box_agc->isChecked()) gain = -1;
     err = ptr_airspy->init(rf_fraquency_hz, gain);
     ui->text_log->insertPlainText("Init AirSpy:"  " "  +
@@ -235,6 +237,9 @@ int main_window::start_airspy()
     connect(ptr_airspy, &rx_airspy::status, this, &main_window::status_airspy);
     connect(ptr_airspy, &rx_airspy::radio_frequency, this, &main_window::radio_frequency);
     connect(ptr_airspy, &rx_airspy::level_gain, this, &main_window::level_gain);
+#if 0
+   connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_airspy,SLOT(set_gain_db(int)),Qt::DirectConnection);
+#endif
 
     return 0;
 }
@@ -273,7 +278,7 @@ int main_window::start_plutosdr()
    int gain;
    int err;
    rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
-   gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
+   gain = static_cast<uint8_t>(ui->spinBoxGain->value());
    if(ui->check_box_agc->isChecked()) gain = -1;
    err = ptr_plutosdr->init(rf_fraquency_hz, gain);
    ui->text_log->insertPlainText("Init PlutoSDR:"  " "  +
@@ -293,6 +298,9 @@ int main_window::start_plutosdr()
    connect(ptr_plutosdr, &rx_plutosdr::status, this, &main_window::status_plutosdr);
    connect(ptr_plutosdr, &rx_plutosdr::radio_frequency, this, &main_window::radio_frequency);
    connect(ptr_plutosdr, &rx_plutosdr::level_gain, this, &main_window::level_gain);
+#if 0
+   connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_plutosdr,SLOT(set_gain_db(int)),Qt::DirectConnection);
+#endif
 
     return 0;
 }
@@ -336,7 +344,7 @@ int main_window::start_hackrf()
     int gain;
     int err;
     rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
-    gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
+    gain = static_cast<uint8_t>(ui->spinBoxGain->value());
     if(ui->check_box_agc->isChecked()) gain = -1;
     err = ptr_hackrf->init(rf_fraquency_hz, gain);
     ui->text_log->insertPlainText("Init HackRF:"  " "  +
@@ -358,6 +366,7 @@ int main_window::start_hackrf()
     connect(ptr_hackrf, &rx_hackrf::radio_frequency, this, &main_window::radio_frequency);
     connect(ptr_hackrf, &rx_hackrf::level_gain, this, &main_window::level_gain);
     connect(ptr_hackrf, &rx_hackrf::buffered, this, &main_window::update_buffered, Qt::QueuedConnection);
+    connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_hackrf,SLOT(set_gain_db(int)),Qt::DirectConnection);
 
     return 0;
 }
@@ -404,7 +413,7 @@ int main_window::start_miri()
     int gain;
     int err;
     rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
-    gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
+    gain = static_cast<uint8_t>(ui->spinBoxGain->value());
     if(ui->check_box_agc->isChecked()) gain = -1;
     err = ptr_miri->init(rf_fraquency_hz, gain);
     ui->text_log->insertPlainText("Init Miri SDR:"  " "  +
@@ -426,6 +435,7 @@ int main_window::start_miri()
     connect(ptr_miri, &rx_miri::radio_frequency, this, &main_window::radio_frequency);
     connect(ptr_miri, &rx_miri::level_gain, this, &main_window::level_gain);
     connect(ptr_miri, &rx_miri::buffered, this, &main_window::update_buffered, Qt::QueuedConnection);
+    connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_miri,SLOT(set_gain_db(int)),Qt::DirectConnection);
 
     return 0;
 }
@@ -515,7 +525,6 @@ void main_window::on_push_button_start_clicked()
     connect_info();
     ui->push_button_start->setEnabled(false);
     ui->spinBoxRF->setEnabled(false);
-    ui->line_edit_gain->setEnabled(false);
     ui->check_box_agc->setEnabled(false);
     ui->push_button_stop->setEnabled(true);
 }
@@ -565,7 +574,6 @@ void main_window::on_push_button_stop_clicked()
     ui->label_info_gain->setText("gain reducton (dB) : ");
     ui->menu_open->setEnabled(true);
     ui->spinBoxRF->setEnabled(true);
-    ui->line_edit_gain->setEnabled(true);
     ui->check_box_agc->setEnabled(true);
 }
 //------------------------------------------------------------------------------------------------

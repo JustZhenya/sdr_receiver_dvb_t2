@@ -9,7 +9,6 @@ rx_airspy::rx_airspy(QObject *parent) : QObject(parent)
 //-------------------------------------------------------------------------------------------
 rx_airspy::~rx_airspy()
 {
-    delete signal;
 }
 //-------------------------------------------------------------------------------------------
 std::string rx_airspy::error (int err)
@@ -109,7 +108,7 @@ int rx_airspy::init(uint32_t _rf_frequence_hz, int _gain)
     buffer_a.resize(max_len_out);
     buffer_b.resize(max_len_out);
 
-    signal = new signal_estimate;
+    signal.agc = agc;
 
     demodulator = new dvbt2_demodulator(id_airspy, sample_rate);
     thread = new QThread;
@@ -135,16 +134,16 @@ void rx_airspy::start()
 //-------------------------------------------------------------------------------------------
 void rx_airspy::reset()
 {
-    signal->reset = false;
+    signal.reset = false;
     rf_frequency = ch_frequency;
-    signal->coarse_freq_offset = 0.0;
-    signal->change_frequency = true;
-    signal->correct_resample = 0.0;
+    signal.coarse_freq_offset = 0.0;
+    signal.change_frequency = true;
+    signal.correct_resample = 0.0;
     if(agc) {
         gain = 0;
     }
-    signal->gain_offset = 0;
-    signal->change_gain = true;
+    signal.gain_offset = 0;
+    signal.change_gain = true;
     ptr_buffer = &buffer_a[0];
     swap_buffer = true;
     len_buffer = 0;
@@ -156,25 +155,25 @@ void rx_airspy::reset()
 //-------------------------------------------------------------------------------------------
 void rx_airspy::set_rf_frequency()
 {
-    if(!signal->frequency_changed) {
+    if(!signal.frequency_changed) {
         end_wait_frequency_changed = clock();
         float mseconds = (end_wait_frequency_changed - start_wait_frequency_changed) /
                          (CLOCKS_PER_SEC / 1000);
         if(mseconds > 100) {
-            signal->frequency_changed = true;
+            signal.frequency_changed = true;
             emit radio_frequency(rf_frequency);
         }
     }
-    if(signal->change_frequency) {
-        signal->change_frequency = false;
-        signal->correct_resample = signal->coarse_freq_offset / static_cast<float>(rf_frequency);
-        rf_frequency += static_cast<uint32_t>(signal->coarse_freq_offset);
+    if(signal.change_frequency) {
+        signal.change_frequency = false;
+        signal.correct_resample = signal.coarse_freq_offset / static_cast<float>(rf_frequency);
+        rf_frequency += static_cast<uint32_t>(signal.coarse_freq_offset);
         int err = airspy_set_freq(device, rf_frequency);
         if(err != 0) {
             emit status(err);
         }
         else{
-            signal->frequency_changed = false;
+            signal.frequency_changed = false;
             start_wait_frequency_changed = clock();
         }
     }
@@ -182,19 +181,19 @@ void rx_airspy::set_rf_frequency()
 //-------------------------------------------------------------------------------------------
 void rx_airspy::set_gain()
 {
-    if(!signal->gain_changed) {
+    if(!signal.gain_changed) {
         end_wait_gain_changed = clock();
         float mseconds = (end_wait_gain_changed - start_wait_gain_changed) /
                          (CLOCKS_PER_SEC / 1000);
         if(mseconds > 10) {
-            signal->gain_changed = true;
+            signal.gain_changed = true;
             emit level_gain(gain);
         }
     }
-    if(agc && signal->change_gain) {
-        signal->change_gain = false;
+    if(agc && signal.change_gain) {
+        signal.change_gain = false;
 
-        gain += signal->gain_offset;
+        gain += signal.gain_offset;
         if(gain > 21) {
             gain = 0;
         }
@@ -203,7 +202,7 @@ void rx_airspy::set_gain()
             emit status(err);
         }
         else{
-            signal->gain_changed = false;
+            signal.gain_changed = false;
             start_wait_gain_changed = clock();
         }
     }
@@ -231,13 +230,13 @@ void rx_airspy::rx_execute(int16_t* _ptr_rx_buffer, int _len_out_device)
 {
     int len_out_device = _len_out_device;
     float level_detect=std::numeric_limits<float>::max();
-    conv.execute(0,len_out_device / 2, &_ptr_rx_buffer[0], &_ptr_rx_buffer[1], ptr_buffer, level_detect,*signal);
+    conv.execute(0,len_out_device / 2, &_ptr_rx_buffer[0], &_ptr_rx_buffer[1], ptr_buffer, level_detect,signal);
     len_buffer += len_out_device / 2;
     ptr_buffer += len_out_device / 2;
 
     if(demodulator->mutex->try_lock()) {
 
-        if(signal->reset){
+        if(signal.reset){
             reset();
 
             demodulator->mutex->unlock();
@@ -251,11 +250,11 @@ void rx_airspy::rx_execute(int16_t* _ptr_rx_buffer, int _len_out_device)
         set_gain();
 
         if(swap_buffer) {
-            emit execute(len_buffer, &buffer_a[0], level_detect, signal);
+            emit execute(len_buffer, &buffer_a[0], level_detect, &signal);
             ptr_buffer = buffer_b.data();
         }
         else {
-            emit execute(len_buffer, &buffer_b[0], level_detect, signal);
+            emit execute(len_buffer, &buffer_b[0], level_detect, &signal);
             ptr_buffer = buffer_a.data();
         }
         swap_buffer = !swap_buffer;
