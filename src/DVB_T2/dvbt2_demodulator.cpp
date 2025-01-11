@@ -280,6 +280,20 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                 deinterleaver->fifo.push(tmp);
                 mutex_out->unlock();
                 emit data();
+
+                phase_est_filtered = loop_filter_phase_offset(phase_est * 0.5f, M_PIf32 * 2);
+                constexpr double step = 5.0e-10;
+                constexpr float clip = 2.f;
+                float ofs = old_sample_rate_est - sample_rate_est;
+                if(ofs > clip)
+                    ofs = clip;
+                if(ofs < -clip)
+                    ofs = -clip;
+                sample_rate_est_filtered -= step * ofs;
+                if(resample - sample_rate_est_filtered > max_resample) sample_rate_est_filtered = resample - max_resample;
+                if(resample - sample_rate_est_filtered < min_resample) sample_rate_est_filtered = resample - min_resample;
+                old_sample_rate_est = sample_rate_est;
+
             }
             ++idx_symbol;
             if(idx_symbol == end_data_symbol) {
@@ -383,18 +397,6 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                 }
             }
         }
-
-        phase_est_filtered = loop_filter_phase_offset(phase_est * 0.5f, M_PIf32 * 2);
-        double step = 8.0e-9;
-        if(old_sample_rate_est - sample_rate_est > 0.0f) {
-            sample_rate_est_filtered -= step;
-            if(resample - sample_rate_est_filtered < min_resample) sample_rate_est_filtered += step;
-        }
-        else if(old_sample_rate_est - sample_rate_est < 0.0f){
-            sample_rate_est_filtered += step;
-            if(resample - sample_rate_est_filtered > max_resample) sample_rate_est_filtered -= step;
-        }
-        old_sample_rate_est = sample_rate_est;
 
     }
     if(enabled_display)
