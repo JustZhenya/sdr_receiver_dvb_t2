@@ -86,7 +86,7 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
     complex* in = _in;
     bool p1_detect = false;
     if(_gain_changed) {
-        begin_threshold = _level_detect * 2.0e+5f;
+        begin_threshold = _level_detect * 1.0e+1f;
         end_threshold = 0.5f * begin_threshold;
     }
     while(idx_in < len_in) {
@@ -103,7 +103,7 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
                 reset_buffer();
             }
 
-            if(correlation < end_threshold) {
+            if(correlation < max_correlation * 0.1f) {
 
                 p1_detect = true;
                 _idx_buffer_sym = idx_buffer;
@@ -155,12 +155,12 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
         in_av_c = data * conj(c);
         b = delay_b(data);
         in_av_b = data_sihft * conj(b);
-        out_av_c = average_c(in_av_c);
-        out_av_b = average_b(in_av_b);
+        out_av_c = average_c(in_av_c)/float(P1_C_PART);
+        out_av_b = average_b(in_av_b)/float(P1_B_PART);
         a = delay_b_x2(out_av_c);
         d = delay_2(out_av_b);
         out = a * d;
-        correlation = norm(out);
+        correlation = sqrtf(std::abs(out))*10.f;
         const complex cor(correlation);
         if(enabled_display)
             cor_buffer.write(cor);

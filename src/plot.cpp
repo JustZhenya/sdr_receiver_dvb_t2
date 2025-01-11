@@ -162,16 +162,39 @@ void plot::replace_null_indicator(const float _b1, const float _b2)
 //-------------------------------------------------------------------------------------------
 void plot::greate_graph(int _len_data, complex *_data)
 {
-    if (check_len_data == _len_data) return;
-
     const int len_data = _len_data;
-    QPen pen;
     double max = 0, min = 0;
+    double d,d2;
+    if (check_len_data == _len_data)
+    {
+    switch (type) {
+    case type_spectrograph:
+        break;
+    case type_null_indicator:
+        break;
+    case type_constelation:
+        break;
+    case type_oscilloscope:
+        for(int i = 0; i < len_data; ++i){
+            d = static_cast<double>(_data[i].real());
+            if(d > max) max = d;
+        }
+        current_plot->yAxis->setRange(0/*min*/, max*1.1);
+        break;
+    case type_oscilloscope_2:
+
+        break;
+    }
+        return;
+    }
+
+    QPen pen;
     check_len_data = len_data;
     x_data.resize(len_data);
     y_data.resize(len_data);
 
-    current_plot->addGraph();
+    if(current_plot->graphCount()<1)
+        current_plot->addGraph();
 
     switch (type) {
     case type_spectrograph:
@@ -197,7 +220,6 @@ void plot::greate_graph(int _len_data, complex *_data)
         current_plot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDot, 0));
         break;
     case type_oscilloscope:
-        double d;
         for(int i = 0; i < len_data; ++i){
             d = static_cast<double>(_data[i].real());
             if(d > max) max = d;
@@ -206,7 +228,7 @@ void plot::greate_graph(int _len_data, complex *_data)
         current_plot->xAxis->setLabel("Samples");
         current_plot->xAxis->setRange(0, len_data);
         current_plot->yAxis->setLabel("Amplitude");
-        current_plot->yAxis->setRange(0/*min*/, 1.5e+6/*max*/);
+        current_plot->yAxis->setRange(0/*min*/, max*1.1);
         pen.setColor(Qt::green);
         current_plot->graph(0)->setPen(pen);
         current_plot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssPlusCircle, 3));
@@ -214,7 +236,6 @@ void plot::greate_graph(int _len_data, complex *_data)
                 current_plot->xAxis2, SLOT(setRange(QCPRange)));
         break;
     case type_oscilloscope_2:
-        double d2;
 //        for(int i = 0; i < len_data; ++i){
 //            d2 = static_cast<double>(_data[i].real());
 //            if(d2 > max) max = d2;
@@ -231,7 +252,8 @@ void plot::greate_graph(int _len_data, complex *_data)
         current_plot->graph(0)->setName("angle pilot sinal");
         x_data_2.resize(len_data);
         y_data_2.resize(len_data);
-        current_plot->addGraph(current_plot->xAxis2, current_plot->yAxis2);
+        if(current_plot->graphCount()<2)
+            current_plot->addGraph(current_plot->xAxis2, current_plot->yAxis2);
         for(int i = 0; i < len_data; ++i){
             d2 = static_cast<double>(_data[i].imag());
             if(d2 > max) max = d2;
