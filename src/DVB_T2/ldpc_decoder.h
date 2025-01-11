@@ -93,6 +93,7 @@ signals:
     void check(int _lenout, uint8_t* out);
     void stop_decoder();
     void finished();
+    void frame_finished();
 
 public slots:
     void execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, fec_frame _in);

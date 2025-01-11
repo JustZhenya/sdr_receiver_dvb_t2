@@ -267,6 +267,7 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
         mutex_out->unlock();
         bch_fec = buffer_a.data();
     }
+    emit frame_finished();
 }
 //------------------------------------------------------------------------------------------
 void ldpc_decoder::stop()

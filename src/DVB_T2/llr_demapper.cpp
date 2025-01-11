@@ -72,6 +72,7 @@ llr_demapper::llr_demapper(QWaitCondition *_signal_in, QMutex* _mutex, QObject* 
     thread = new QThread;
     thread->setObjectName("ldpc_decoder");
     decoder->moveToThread(thread);
+    connect(decoder, &ldpc_decoder::frame_finished, this, &llr_demapper::ldpc_frame_finished);
     connect(this, &llr_demapper::soft_multiplexer_de_twist, decoder, &ldpc_decoder::execute);
     connect(this, &llr_demapper::stop_decoder, decoder, &ldpc_decoder::stop);
     connect(decoder, &ldpc_decoder::finished, decoder, &ldpc_decoder::deleteLater);
@@ -84,6 +85,13 @@ llr_demapper::~llr_demapper()
 {
     emit stop_decoder();
     if(thread->isRunning()) thread->wait(1000);
+}
+//------------------------------------------------------------------------------------------
+void llr_demapper::ldpc_frame_finished()
+{
+    --nqueued_frames;
+    if(nqueued_frames>nqueued_max/2)
+        printf("nqueued_frames=%d\n",nqueued_frames);
 }
 //------------------------------------------------------------------------------------------
 void llr_demapper::address_generator(int _column, int _row, int* _address, const int* _tc,
@@ -113,25 +121,30 @@ void llr_demapper::execute(int _ti_block_size, complex* _time_deint_cell,
 {
     mutex_in->lock();
     signal_in->wakeOne();
-    int plp_id = _plp_id;
-    l1_postsignalling l1_post = _l1_post;
-    int len_in = _ti_block_size;
-    complex* in = _time_deint_cell;
-    switch(l1_post.plp[plp_id].plp_mod){
-    case MOD_64QAM:
-        qam64(plp_id, l1_post, len_in, in);
-        break;
-    case MOD_256QAM:
-        qam256(plp_id, l1_post, len_in, in);
-        break;
-    case MOD_16QAM:
-        qam16(plp_id, l1_post, len_in, in);
-        break;
-    case MOD_QPSK:
-        qpsk(plp_id, l1_post, len_in, in);
-        break;
-    default:
-        break;
+    if(nqueued_frames<nqueued_max)
+    {
+        int plp_id = _plp_id;
+        l1_postsignalling l1_post = _l1_post;
+        int len_in = _ti_block_size;
+        complex* in = _time_deint_cell;
+        switch(l1_post.plp[plp_id].plp_mod){
+        case MOD_64QAM:
+            qam64(plp_id, l1_post, len_in, in);
+            break;
+        case MOD_256QAM:
+            qam256(plp_id, l1_post, len_in, in);
+            break;
+        case MOD_16QAM:
+            qam16(plp_id, l1_post, len_in, in);
+            break;
+        case MOD_QPSK:
+            qpsk(plp_id, l1_post, len_in, in);
+            break;
+        default:
+            break;
+        }
+    }else{
+        //signal queue overflow
     }
     mutex_in->unlock();
 }
@@ -196,6 +209,7 @@ void llr_demapper::qpsk(int _plp_id, l1_postsignalling _l1_post, int _len_in, co
                     emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b);
                     out = &buffer_a[0];
                 }
+                ++nqueued_frames;
             }
         }
     }
@@ -327,6 +341,7 @@ void llr_demapper::qam16(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
                     emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b);
                     out = &buffer_a[0];
                 }
+                ++nqueued_frames;
             }
         }
     }
@@ -493,6 +508,7 @@ void llr_demapper::qam64(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
                     emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b);
                     out = &buffer_a[0];
                 }
+                ++nqueued_frames;
             }
         }
     }
@@ -721,6 +737,7 @@ void llr_demapper::qam256(int _plp_id, l1_postsignalling _l1_post, int _len_in, 
                     emit soft_multiplexer_de_twist(idx_plp_simd, l1_post, len_out, buffer_b);
                     out = &buffer_a[0];
                 }
+                ++nqueued_frames;
             }
         }
     }

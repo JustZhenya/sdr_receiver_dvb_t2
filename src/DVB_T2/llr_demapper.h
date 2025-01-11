@@ -46,6 +46,7 @@ public slots:
     void execute(int _ti_block_size, complex* _time_deint_cell,
                  int _plp_id, l1_postsignalling _l1_post);
     void stop();
+    void ldpc_frame_finished();
 
 private:
     QWaitCondition* signal_in;
@@ -59,6 +60,8 @@ private:
     bool swap_buffer_start = true;
     bool swap_buffer = true;
     int blocks{0};
+    int nqueued_frames{0};
+    constexpr static int nqueued_max{1024};
     int8_t* out{nullptr};
     complex derotate_qpsk;
     complex derotate_qam16;
