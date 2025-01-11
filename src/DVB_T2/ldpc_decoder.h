@@ -27,12 +27,6 @@
 #include "LDPC/dvb_t2_tables.hh"
 #include "LDPC/algorithms.hh"
 
-#ifdef __AVX2__
-const int SIZEOF_SIMD = 32;
-#else
-const int SIZEOF_SIMD = 16;
-#endif
-
 typedef float value_type;
 //typedef std::complex<value_type> complex_type;
 
@@ -74,12 +68,6 @@ const int TRIALS = 15;//25
 //typedef LambdaMinAlgorithm<simd_type, update_type, 3> algorithm_type;
 //typedef SumProductAlgorithm<simd_type, update_type> algorithm_type;
 
-typedef std::array<int8_t,FEC_SIZE_NORMAL * SIZEOF_SIMD> fec_frame;
-typedef std::array<int,SIZEOF_SIMD> idx_plp_simd_t;
-
-Q_DECLARE_METATYPE(fec_frame)
-Q_DECLARE_METATYPE(idx_plp_simd_t)
-
 class ldpc_decoder : public QObject
 {
     Q_OBJECT
@@ -89,7 +77,7 @@ public:
     bch_decoder* decoder;
 
 signals:
-    void bit_bch(int* _idx_plp_simd, l1_postsignalling _l1_post, int _lenout, uint8_t* out);
+    void bit_bch(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _lenout, bch_decoder::in_t out);
     void check(int _lenout, uint8_t* out);
     void stop_decoder();
     void finished();
@@ -98,6 +86,7 @@ signals:
 public slots:
     void execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, fec_frame _in);
     void stop();
+    void bch_frame_finished();
 
 private:
     QWaitCondition* signal_in;
@@ -106,9 +95,9 @@ private:
     QMutex* mutex_in;
     QMutex* mutex_out;
     uint8_t* bch_fec;
-    std::vector<uint8_t> buffer_a{};
-    std::vector<uint8_t> buffer_b{};
-    bool swap_buffer = true;
+    bch_decoder::in_t buffer{};
+    int nqueued_frames{0};
+    constexpr static int nqueued_max{64};
 
     LDPCDecoder<simd_type, algorithm_type> decode_normal_cod_1_2;
     LDPCDecoder<simd_type, algorithm_type> decode_normal_cod_3_4;

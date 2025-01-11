@@ -57,18 +57,15 @@ void bch_decoder::init_descrambler()
       }
     }
 //------------------------------------------------------------------------------------------
-void bch_decoder::execute(int *_idx_plp_simd, l1_postsignalling _l1_post, int _len_in, uint8_t* _in)
+void bch_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, in_t _in)
 {
-    mutex_in->lock();
-    signal_in->wakeOne();
-
 //        mutex_in->unlock();
 //        return;
 
-    int* plp_id = _idx_plp_simd;
+    int* plp_id = &_idx_plp_simd[0];
     l1_postsignalling l1_post = _l1_post;
     int len_in = _len_in;
-    uint8_t* in = _in;
+    uint8_t* in = &_in[0];
     int k_bch=0;
     int n_bch=0;
     dvbt2_fectype_t fec_type = static_cast<dvbt2_fectype_t>(l1_post.plp[plp_id[0]].plp_fec_type);
@@ -156,8 +153,8 @@ void bch_decoder::execute(int *_idx_plp_simd, l1_postsignalling _l1_post, int _l
             out = &buffer_a[0];
         }
     }
+    emit frame_finished();
 
-     mutex_in->unlock();
 }
 //------------------------------------------------------------------------------------------
 void bch_decoder::stop()

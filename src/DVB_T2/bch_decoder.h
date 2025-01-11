@@ -20,6 +20,7 @@
 #include <QMutex>
 #include <QWaitCondition>
 #include <array>
+#include <vector>
 
 #include "dvbt2_definition.h"
 #include "bb_de_header.h"
@@ -28,6 +29,7 @@ class bch_decoder : public QObject
 {
     Q_OBJECT
 public:
+    typedef std::vector<uint8_t> in_t;
     explicit bch_decoder(QWaitCondition* _signal_in, QMutex* _mutex_in, QObject *parent = nullptr);
     ~bch_decoder();
     bb_de_header* deheader;
@@ -37,9 +39,10 @@ signals:
     void check(int _len, uint8_t* out);
     void stop_deheader();
     void finished();
+    void frame_finished();
 
 public slots:
-    void execute(int* _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, uint8_t* _in);
+    void execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, in_t _in);
     void stop();
 
 private:
@@ -60,5 +63,7 @@ private:
     unsigned int nbch;
 //    unsigned int bch_code;
 };
+
+Q_DECLARE_METATYPE(bch_decoder::in_t)
 
 #endif // BCH_DECODER_H

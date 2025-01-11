@@ -61,7 +61,7 @@ private:
     bool swap_buffer = true;
     int blocks{0};
     int nqueued_frames{0};
-    constexpr static int nqueued_max{1024};
+    constexpr static int nqueued_max{64};
     int8_t* out{nullptr};
     complex derotate_qpsk;
     complex derotate_qam16;

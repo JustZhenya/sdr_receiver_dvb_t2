@@ -34,6 +34,9 @@ main_window::main_window(QWidget *parent)
 {
     ui->setupUi(this);
 
+    qRegisterMetaType<fec_frame>();
+    qRegisterMetaType<idx_plp_simd_t>();
+    qRegisterMetaType<bch_decoder::in_t>();
 #ifdef USE_SDRPLAY
     connect(ui->action_sdrplay, SIGNAL(triggered()), this, SLOT(open_sdrplay()));
     QAction * action_sdrplay = new QAction("SDRPlay", this);

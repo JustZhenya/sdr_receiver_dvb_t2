@@ -22,6 +22,12 @@
 
 typedef std::complex<float> complex;
 
+#ifdef __AVX2__
+const int SIZEOF_SIMD = 32;
+#else
+const int SIZEOF_SIMD = 16;
+#endif
+
 #define TRUE    1
 #define FALSE   0
 #define M_PI_X_2  (M_PIf32 * 2.0f)
@@ -342,6 +348,12 @@ struct l1_postsignalling{
     l1_postsignalling_dynamic dyn_next;
 };
 Q_DECLARE_METATYPE(l1_postsignalling)
+typedef std::array<int8_t,FEC_SIZE_NORMAL * SIZEOF_SIMD> fec_frame;
+typedef std::array<int,SIZEOF_SIMD> idx_plp_simd_t;
+
+Q_DECLARE_METATYPE(fec_frame)
+Q_DECLARE_METATYPE(idx_plp_simd_t)
+
 
 const unsigned char pn_sequence_table[CHIPS / 8] =
 {

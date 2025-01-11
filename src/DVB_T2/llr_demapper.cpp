@@ -31,8 +31,6 @@ llr_demapper::llr_demapper(QWaitCondition *_signal_in, QMutex* _mutex, QObject* 
     signal_in(_signal_in),
     mutex_in(_mutex)
 {
-    qRegisterMetaType<fec_frame>();
-    qRegisterMetaType<idx_plp_simd_t>();
     derotate_qpsk.real(cos(-ROT_QPSK));
     derotate_qpsk.imag(sin(-ROT_QPSK));
     derotate_qam16.real(cos(-ROT_QAM16));
@@ -91,7 +89,7 @@ void llr_demapper::ldpc_frame_finished()
 {
     --nqueued_frames;
     if(nqueued_frames>nqueued_max/2)
-        printf("nqueued_frames=%d\n",nqueued_frames);
+        printf("llr_demapper::nqueued_frames=%d\n",nqueued_frames);
 }
 //------------------------------------------------------------------------------------------
 void llr_demapper::address_generator(int _column, int _row, int* _address, const int* _tc,

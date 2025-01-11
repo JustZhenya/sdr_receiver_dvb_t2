@@ -103,9 +103,8 @@ ldpc_decoder::ldpc_decoder(QWaitCondition* _signal_in, QMutex *_mutex_in, QObjec
     simd = new(std::align_val_t(sizeof(simd_type)))simd_type[sizeof(simd_type) * FEC_SIZE_NORMAL];
 
     const unsigned int len_buffer = 54000 * SIZEOF_SIMD;    // for ldpc code 5/6
-    buffer_a.resize(len_buffer);
-    buffer_b.resize(len_buffer);
-    bch_fec = buffer_a.data();
+    buffer.resize(len_buffer);
+    bch_fec = buffer.data();
 
     mutex_out = new QMutex;
     signal_out = new QWaitCondition;
@@ -113,6 +112,7 @@ ldpc_decoder::ldpc_decoder(QWaitCondition* _signal_in, QMutex *_mutex_in, QObjec
     thread = new QThread;
     thread->setObjectName("bch_decoder");
     decoder->moveToThread(thread);
+    connect(decoder, &bch_decoder::frame_finished, this, &ldpc_decoder::bch_frame_finished);
     connect(this, &ldpc_decoder::bit_bch, decoder, &bch_decoder::execute);
     connect(this, &ldpc_decoder::stop_decoder, decoder, &bch_decoder::stop);
     connect(decoder, &bch_decoder::finished, decoder, &bch_decoder::deleteLater);
@@ -125,6 +125,13 @@ ldpc_decoder::~ldpc_decoder()
 {
     emit stop_decoder();
     if(thread->isRunning()) thread->wait(1000);
+}
+//------------------------------------------------------------------------------------------
+void ldpc_decoder::bch_frame_finished()
+{
+    --nqueued_frames;
+    if(nqueued_frames>nqueued_max/2)
+        printf("ldpc_decoder::nqueued_frames=%d\n",nqueued_frames);
 }
 //------------------------------------------------------------------------------------------
 void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, fec_frame _in)
@@ -234,7 +241,7 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
     int count = (*p_decode)(simd, simd + k_ldpc, trials, SIZEOF_SIMD);
     if (count < 0) {
         fprintf(stderr, "LDPC decoder could not recover the codeword! %d\n", count);
-        mutex_in->unlock();
+        emit frame_finished();
         return;
     }
 
@@ -247,26 +254,12 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
         }
     }
 
-//    bch_fec = buffer_a.data();
+    bch_fec = buffer.data();
 
 
     int len_out = k_ldpc * SIZEOF_SIMD;
-    if(swap_buffer) {
-        swap_buffer = false;
-        mutex_out->lock();
-        emit bit_bch(plp_id, l1_post, len_out, buffer_a.data());
-        signal_out->wait(mutex_out);
-        mutex_out->unlock();
-        bch_fec = buffer_b.data();
-    }
-    else {
-        swap_buffer = true;
-        mutex_out->lock();
-        emit bit_bch(plp_id, l1_post, len_out, buffer_b.data());
-        signal_out->wait(mutex_out);
-        mutex_out->unlock();
-        bch_fec = buffer_a.data();
-    }
+    ++nqueued_frames;
+    emit bit_bch(_idx_plp_simd, l1_post, len_out, buffer);
     emit frame_finished();
 }
 //------------------------------------------------------------------------------------------
