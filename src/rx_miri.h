@@ -72,7 +72,7 @@ private:
     std::vector<complex> buffer_b;
     complex* ptr_buffer;
     int  blocks = 1;
-    const int len_out_device = 128*1024;
+    const int len_out_device = 128*1024*4;
     const int max_blocks = 256;
     int len_buffer = 0;
     bool swap_buffer = true;
