@@ -198,7 +198,7 @@ private:
     constexpr static uint upsample = DECIMATION_STEP;
     float sample_rate;
     double resample;
-    double max_resample;
+    double max_resample, min_resample;
 
     complex* out_interpolator{};
     std::vector<complex> out_decimator{};

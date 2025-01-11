@@ -52,6 +52,7 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
     unsigned int max_len_symbol = FFT_32K + FFT_32K / 4 + P1_LEN;
     resample =  sample_rate / (SAMPLE_RATE * upsample);
     max_resample = resample + resample * 1.0e-4;// for 100ppm
+    min_resample = resample - resample * 1.0e-4;// for 100ppm
     uint len_max = (max_len_symbol + P1_LEN) * max_resample * upsample;
 
     out_interpolator = static_cast<complex*>(_mm_malloc(sizeof(complex) * len_max * upsample, 32));
@@ -387,7 +388,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
         double step = 8.0e-9;
         if(old_sample_rate_est - sample_rate_est > 0.0f) {
             sample_rate_est_filtered -= step;
-            if(resample - sample_rate_est_filtered < -max_resample) sample_rate_est_filtered += step;
+            if(resample - sample_rate_est_filtered < min_resample) sample_rate_est_filtered += step;
         }
         else if(old_sample_rate_est - sample_rate_est < 0.0f){
             sample_rate_est_filtered += step;
