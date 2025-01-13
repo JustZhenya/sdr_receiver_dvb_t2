@@ -62,6 +62,7 @@ private:
     int* h_even_data;
     int* h_odd_data;
     std::vector<complex> buffer_cell{};        // max(dx) x max(dy) x 2 for scaterred pilot pattern
+    std::vector<complex> prev_pilot{};
     bool swap_buffer = false;
     std::vector<complex> est_show{};
     std::vector<complex> show_symbol{};

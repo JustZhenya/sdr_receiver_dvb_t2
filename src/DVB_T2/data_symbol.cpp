@@ -85,6 +85,7 @@ void data_symbol::init(dvbt2_parameters &_dvbt2, pilot_generator* _pilot,
     data_carrier_map = pilot->data_carrier_map;
     data_pilot_refer = pilot->data_pilot_refer;
     buffer_cell.resize(c_data);
+    prev_pilot.resize(k_total);
     address->data_address_freq_deinterleaver(_dvbt2);
     h_even_data = address->h_even_data;
     h_odd_data = address->h_odd_data;
@@ -172,7 +173,8 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
             dif_angle = angle - angle_est;
             if(dif_angle > M_PIf32) dif_angle = M_PIf32 * 2.0f - dif_angle;
             else if(dif_angle < -M_PIf32) dif_angle = M_PIf32 * 2.0f + dif_angle;
-            sum_angle_1 += angle;
+            sum_angle_1 += (est_pilot * std::conj(prev_pilot[i])).imag();
+            prev_pilot[i] = est_pilot;
 
             delta_angle = (dif_angle) / (idx_data + 1);
             amp = sqrt(norm(cell)) / amp_pilot;
@@ -271,7 +273,8 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
             dif_angle = angle - angle_est;
             if(dif_angle > M_PIf32) dif_angle = M_PIf32 * 2.0f - dif_angle;
             else if(dif_angle < -M_PIf32) dif_angle = M_PIf32 * 2.0f + dif_angle;
-            sum_angle_2 += angle;
+            sum_angle_2 += (est_pilot * std::conj(prev_pilot[i])).imag();
+            prev_pilot[i] = est_pilot;
 
             delta_angle = (dif_angle) / (idx_data + 1);
             amp = sqrt(norm(cell)) / amp_pilot;
@@ -310,7 +313,7 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
 
     _phase_offset = (ph_2 + ph_1);
 
-    _sample_rate_offset = (sum_angle_2 - sum_angle_1);
+    _sample_rate_offset = (sum_angle_2 - sum_angle_1)/(n_data*amp_est*amp_est);
 
     if(idx_symbol == n_p2) {
         int len = c_data;
