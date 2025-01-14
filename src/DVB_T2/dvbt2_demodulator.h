@@ -112,7 +112,7 @@ template<typename T> struct convert_iq
 private:
     int convert_input = 1;
     float short_to_float = 1.0f/32768.0f;
-    static constexpr float dc_ratio = 1.0e-6f;//1.0e-5f
+    static constexpr float dc_ratio = 1.0e-5f;//1.0e-5f
     exponential_averager<float, float, dc_ratio> exp_avg_dc_real;
     exponential_averager<float, float, dc_ratio> exp_avg_dc_imag;
 
