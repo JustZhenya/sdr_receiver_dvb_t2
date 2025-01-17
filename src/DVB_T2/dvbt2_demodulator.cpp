@@ -94,7 +94,6 @@ void dvbt2_demodulator::reset()
     frequency_nco = 0;
     loop_filter_phase_offset.reset();
     phase_nco = 0.0f;
-    old_sample_rate_est = 0.0f;
     sample_rate_est_filtered = 0;
     resample =  sample_rate / (SAMPLE_RATE * upsample);
     p2_init = false;
@@ -286,7 +285,6 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                 sample_rate_est_filtered += sr_est_bw * sample_rate_est;
                 if(resample - sample_rate_est_filtered > max_resample) sample_rate_est_filtered = resample - max_resample;
                 if(resample - sample_rate_est_filtered < min_resample) sample_rate_est_filtered = resample - min_resample;
-                old_sample_rate_est = sample_rate_est;
 
             }
             ++idx_symbol;

@@ -193,7 +193,6 @@ private:
                                       samplerate_hz> loop_filter_frequency_offset;
 
     double sample_rate_est_filtered = 0.0;
-    float old_sample_rate_est = 0.0f;
 
     std::vector<complex> out_derotate_sample;
     constexpr static uint upsample = DECIMATION_STEP;
