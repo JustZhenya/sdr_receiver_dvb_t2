@@ -55,7 +55,7 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
     min_resample = resample - resample * 1.0e-4;// for 100ppm
     uint len_max = (max_len_symbol + P1_LEN) * max_resample * upsample;
 
-    out_interpolator = static_cast<complex*>(_mm_malloc(sizeof(complex) * len_max * upsample, 32));
+    out_interpolator = static_cast<complex*>(_mm_malloc(sizeof(complex) * len_max * upsample * (1.+1e-4), 32));
     out_decimator.resize(len_max);
     out_derotate_sample.resize(len_max);
     buffer_sym.resize(max_len_symbol);
