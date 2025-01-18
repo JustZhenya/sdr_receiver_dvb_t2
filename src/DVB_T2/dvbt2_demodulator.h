@@ -135,6 +135,62 @@ private:
 
 };
 
+#include <QFile>
+#include <QIODevice>
+#include <QDateTime>
+
+typedef std::vector<complex> file_sink_buf;
+Q_DECLARE_METATYPE(file_sink_buf);
+
+class file_sink : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit file_sink(long center, long sr)
+    {
+        QString dt = QDateTime::currentDateTimeUtc().toString("yyyyMMdd_hhmmss");
+        fd.setFileName(QString("gqrx_%1_%2_%3_16.raw")
+            .arg(dt)
+            .arg(center)
+            .arg(sr));
+        fd.open(QIODevice::WriteOnly);
+    };
+    ~file_sink()
+    {
+        fd.close();
+    };
+    signals:
+        void finished();
+    public slots:
+    void execute(std::vector<complex> data, int len)
+    {
+        if(buf.size()<len*2)
+            buf.resize(len*2);
+        for(unsigned k=0;k<len;k++)
+        {
+            buf[k*2]=data[k].real()*scale;
+            buf[k*2+1]=data[k].imag()*scale;
+        }
+        fd.write((const char *)&buf[0],len*2);
+    }
+    void stop()
+    {
+        emit finished();
+    }
+    private:
+    static int reg()
+    {
+        qRegisterMetaType<file_sink_buf>();
+        return 1;
+    }
+    static int reg_res;
+    QFile fd;
+    std::vector<int16_t> buf{};
+    constexpr static float scale{32767.f};
+};
+
+
 class dvbt2_demodulator : public QObject
 {
     Q_OBJECT
@@ -161,6 +217,7 @@ signals:
     void data();
     void stop_deinterleaver();
     void finished();
+    void dump(file_sink_buf buf, int len);
 
 public slots:
     void execute(int _len_in, complex* _q_in, float _level_estimate, signal_estimate* signal_);
@@ -170,6 +227,8 @@ private:
     QThread* thread = nullptr;
     QMutex* mutex_out;
     QWaitCondition* signal_out;
+    QThread* thread2 = nullptr;
+    file_sink* dump0 = nullptr;
 
     id_device_t id_device;
 

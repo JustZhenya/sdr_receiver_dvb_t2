@@ -19,6 +19,10 @@
 
 #include "DSP/fast_math.h"
 
+#define EN_DUMP 1
+
+int file_sink::reg_res{file_sink::reg()};
+
 //-------------------------------------------------------------------------------------------
 dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate, QObject *parent) :
     QObject(parent),
@@ -77,6 +81,21 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
 //    thread->start(QThread::TimeCriticalPriority);
     thread->start();
+    
+    #if EN_DUMP
+    dump0 = new file_sink(698000000,SAMPLE_RATE);
+    thread2 = new QThread;
+    thread2->setObjectName("dump0");
+    dump0->moveToThread(thread2);
+    connect(this, &dvbt2_demodulator::dump, dump0, &file_sink::execute);
+    connect(this, &dvbt2_demodulator::stop_deinterleaver, dump0, &file_sink::stop);
+    connect(dump0, &file_sink::finished, dump0, &file_sink::deleteLater);
+    connect(dump0, &file_sink::finished, thread2, &QThread::quit, Qt::DirectConnection);
+    connect(thread2, &QThread::finished, thread2, &QThread::deleteLater);
+//    thread->start(QThread::TimeCriticalPriority);
+    thread2->start();
+    #endif
+    
 }
 //-------------------------------------------------------------------------------------------
 dvbt2_demodulator::~dvbt2_demodulator()
@@ -180,7 +199,10 @@ void dvbt2_demodulator::execute(int _len_in, complex* _in, float _level_estimate
                      len_out_interpolator, &out_interpolator[0]);
         int len_out_decimator;
         decimator.execute(len_out_interpolator, &out_interpolator[0], len_out_decimator, &out_decimator[0]);
-
+#if EN_DUMP
+        if(deint_start)
+        emit dump(out_decimator,len_out_decimator);
+#endif
         //___demodulations and get offset synchronization__
         symbol_acquisition(len_out_decimator, &out_decimator[0], signal_);
 
