@@ -19,7 +19,7 @@
 
 #include "DSP/fast_math.h"
 
-#define EN_DUMP 1
+#define EN_DUMP 0
 
 int file_sink::reg_res{file_sink::reg()};
 
