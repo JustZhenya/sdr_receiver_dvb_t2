@@ -172,7 +172,7 @@ void dvbt2_demodulator::execute(int _len_in, complex* _in, float _level_estimate
         }
         for(int i = 0; i < chunk; ++i) {
             //___phase and frequency synchronization___
-            frequency_nco -= frequency_est_filtered;
+            frequency_nco -= frequency_est_filtered + frequency_est_coarse;
             while(frequency_nco > M_PI_X_2) {
                 frequency_nco -= M_PI_X_2;
             }
@@ -234,7 +234,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                 if(p2_init){
                     next_symbol_type = SYMBOL_TYPE_P2;
                 }
-                else if(signal_->frequency_changed){
+                else{
                     resample -= signal_->correct_resample * resample;
                     if(std::abs(signal_->coarse_freq_offset) < 10.0f){
                         if(p1_decoded){
@@ -249,7 +249,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                         }
                     }
                     else{
-                        signal_->change_frequency = true;
+                        frequency_est_coarse += signal_->coarse_freq_offset * M_PI_X_2 / sample_rate;
                     }
                 }
             }

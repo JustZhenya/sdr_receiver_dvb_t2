@@ -247,6 +247,7 @@ private:
                                       samplerate_hz> loop_filter_phase_offset;
     float frequency_nco = 0.0f;
     float frequency_est_filtered = 0.0f;
+    float frequency_est_coarse = 0.0f;
     constexpr static float damping_ratio = 0.7f;//0.7f
     constexpr static int bw_hz = 4000000;
     proportional_integral_loop_filter<float, float, damping_ratio, bw_hz,
