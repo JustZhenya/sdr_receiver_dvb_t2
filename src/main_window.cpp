@@ -800,7 +800,7 @@ void main_window::disconnect_signals()
     dvbt2->fc_demod.enable_display(false);
     dvbt2->data_demodulator.enable_display(false);
     dvbt2->p2_demodulator.enable_display(false);
-    //dvbt2->deinterleaver->enable_display(false);
+    dvbt2->deinterleaver->enable_display(false);
     dvbt2->enable_display(false);
     disconnect(&dvbt2->p1_demodulator, &p1_symbol::replace_spectrograph,
             p1_spectrograph, &plot::replace_spectrograph);
