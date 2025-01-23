@@ -244,6 +244,15 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
         emit frame_finished();
         return;
     }
+    n_trials[count]++;
+    n_frames++;
+    if(!(n_frames & 0x0ff))
+    {
+        for(int j=0;j<TRIALS;j++)
+            if(n_trials[j])
+                printf("%d:%1.3f ",TRIALS-j,double(n_trials[j])*100./double(n_frames));
+        printf("\n");
+    }
 
     int8_t *s;
     for(int j = 0; j < SIZEOF_SIMD; ++j) {

@@ -55,7 +55,7 @@ const int TRIALS = 1;//
 #include "LDPC/layered_decoder.hh"
 typedef NormalUpdate<simd_type> update_type;
 typedef OffsetMinSumAlgorithm<simd_type, update_type, FACTOR> algorithm_type;
-const int TRIALS = 15;//25
+static constexpr int TRIALS = 15;//25
 #endif
 
 //typedef NormalUpdate<simd_type> update_type;
@@ -98,6 +98,8 @@ private:
     bch_decoder::in_t buffer{};
     int nqueued_frames{0};
     constexpr static int nqueued_max{64};
+    unsigned n_trials[TRIALS]{0};
+    unsigned n_frames{0};
 
     LDPCDecoder<simd_type, algorithm_type> decode_normal_cod_1_2;
     LDPCDecoder<simd_type, algorithm_type> decode_normal_cod_3_4;
