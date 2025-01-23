@@ -90,10 +90,6 @@ private:
     bool done = true;
     int gain_offset = 0;
 
-    complex anti_spur{};
-    complex anti_spur_inc{};
-    static constexpr float anti_spur_alfa = 1.e-5;
-    bool anti_spur_en = false;
     // spur list
     static constexpr double spurs[]=
     {

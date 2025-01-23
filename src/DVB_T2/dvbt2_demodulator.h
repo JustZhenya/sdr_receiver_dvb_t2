@@ -67,21 +67,25 @@ template<typename T> struct convert_iq
     }
     void execute(int idx_in, int _len_in, T* _i_in, T* _q_in, complex * out, float & level_detect, signal_estimate & signal_)
     {
-        float real, imag;
 
         int j = 0;
         for(int i = 0; i < _len_in; ++i) {
             j = (i + idx_in) * convert_input;
-            real = _i_in[j] * short_to_float;
-            imag = _q_in[j] * short_to_float;
+            complex tmp(_i_in[j] * short_to_float, _q_in[j] * short_to_float);
             //___DC offset remove____________
-            real -= exp_avg_dc_real(real);
-            imag -= exp_avg_dc_imag(imag);
+            tmp -= exp_avg_dc(tmp);
+            // remove spurs if any
+            if(anti_spur_en)
+            {
+                anti_spur *= anti_spur_inc;
+                anti_spur += (tmp - anti_spur) * anti_spur_alfa;
+                tmp -= anti_spur;
+            }
             //___IQ imbalance remove_________
-            est_1_bit_quantization(real, imag);
-            real *= c2;
-            imag += c1 * real;
-            out[i]=complex(real,imag);
+            est_1_bit_quantization(tmp.real(), tmp.imag());
+            float real = tmp.real() * c2;
+            tmp = complex(real, tmp.imag() + c1 * real);
+            out[i]=tmp;
             //_____________________________
         }
         //___IQ imbalance estimations___
@@ -107,15 +111,26 @@ template<typename T> struct convert_iq
     }
     void reset()
     {
-        exp_avg_dc_real.reset();
-        exp_avg_dc_imag.reset();
+        exp_avg_dc.reset();
+    }
+    void set_anti_spur(complex incr)
+    {
+        anti_spur_inc = incr;
+        anti_spur_en = true;
+    }
+    void enable_anti_spur(bool state)
+    {
+        anti_spur_en = state;
     }
 private:
     int convert_input = 1;
     float short_to_float = 1.0f/32768.0f;
-    static constexpr float dc_ratio = 1.0e-5f;//1.0e-5f
-    exponential_averager<float, float, dc_ratio> exp_avg_dc_real;
-    exponential_averager<float, float, dc_ratio> exp_avg_dc_imag;
+    static constexpr float dc_ratio = 1.0e-6f;//1.0e-5f
+    exponential_averager<complex, float, dc_ratio> exp_avg_dc;
+    complex anti_spur{};
+    complex anti_spur_inc{};
+    static constexpr float anti_spur_alfa = 1.e-5f;
+    bool anti_spur_en = false;
 
     float c1 = 0.0f;
     float c2 = 1.0f;

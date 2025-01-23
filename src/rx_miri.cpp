@@ -154,12 +154,11 @@ void rx_miri::set_rf_frequency()
         else{
             signal.frequency_changed = false;
             start_wait_frequency_changed = clock();
-            anti_spur_en = false;
+            conv.enable_anti_spur(false);
             for(unsigned k = 0 ; k < sizeof(spurs)/sizeof(spurs[0]) ; k++)
                 if(std::abs(rf_frequency-spurs[k])<double(sample_rate))
                 {
-                    anti_spur_inc = std::polar(1.f,float((spurs[k] - rf_frequency) * M_PI_X_2 / double(sample_rate)));
-                    anti_spur_en = true;
+                    conv.set_anti_spur(std::polar(1.f,float((spurs[k] - rf_frequency) * M_PI_X_2 / double(sample_rate))));
                     break;
                 }
         }
@@ -223,15 +222,6 @@ void rx_miri::rx_execute(void *in_ptr, int nsamples)
     nsamples /= 2;
     float level_detect=std::numeric_limits<float>::max();
     conv.execute(0,nsamples, &ptr[0], &ptr[1],ptr_buffer,level_detect,signal);
-
-    // remove known spurs
-    if(anti_spur_en)
-        for(int k = 0; k < nsamples ; k++)
-        {
-            anti_spur *= anti_spur_inc;
-            anti_spur += (ptr_buffer[k] - anti_spur) * anti_spur_alfa;
-            ptr_buffer[k] -= anti_spur;
-        }
 
     len_buffer += nsamples;
     ptr_buffer += nsamples;
