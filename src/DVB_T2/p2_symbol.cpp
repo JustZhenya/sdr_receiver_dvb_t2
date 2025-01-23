@@ -80,7 +80,7 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
 
     complex* ofdm_cell = &_ofdm_cell[left_nulls];
     complex old_cell = {-1.0f, 0.0f};
-    complex est_pilot, est_dif;
+    complex est_pilot;
     float angle = 0.0f;
     float delta_angle = 0.0f;
     float angle_est = 0.0f;
@@ -90,8 +90,6 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
     float dif_angle = 0.0f;
     float sum_angle_1 = 0.0f;
     float sum_angle_2 = 0.0f;
-    complex sum_dif_1 = {0.0f, 0.0f};
-    complex sum_dif_2 = {0.0f, 0.0f};
     complex sum_pilot_1 = {0.0f, 0.0f};
     complex sum_pilot_2 = {0.0f, 0.0f};
     int idx_symbol = _idx_symbol;
@@ -114,13 +112,10 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
     //__for first pilot______
     cell = ofdm_cell[0];
     pilot_refer = pilot_refer_idx_p2_symbol[0];
-    est_dif = cell * conj(old_cell);
     old_cell = cell;
     est_pilot = cell * pilot_refer;
-    est_dif = cell * conj(old_cell);
     old_cell = cell;
     sum_pilot_1 += est_pilot;
-    sum_dif_1 += est_dif;
     angle_est = atan2_approx(est_pilot.imag(), est_pilot.real());
     amp_est = sqrt(norm(cell)) / amp_pilot;
     //Only for show
@@ -139,11 +134,9 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
             break;
         case P2CARRIER_INVERTED:
         case P2CARRIER:
-            est_dif = cell * conj(old_cell);
             old_cell = cell;
             est_pilot = cell * pilot_refer;
             sum_pilot_1 += est_pilot;
-            sum_dif_1 += est_dif;
             angle = atan2_approx(est_pilot.imag(), est_pilot.real());
 
             dif_angle = angle - angle_est;
@@ -154,13 +147,15 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
             delta_angle = (dif_angle) / (idx_data + 1);
             amp = sqrt(norm(cell)) / amp_pilot;
             delta_amp = (amp - amp_est) / (idx_data + 1);
-            for(int j = 0; j < idx_data; ++j){
-                angle_est += delta_angle;
-                amp_est += delta_amp;
-                derotate.real(cos_lut(angle_est) / amp_est);
-                derotate.imag(sin_lut(angle_est) / amp_est);
-                deinterleaved_cell[h[d]] = buffer_cell[j] * conj(derotate);
-                ++d;
+            derotate = std::conj(complex(cos_lut(angle_est),sin_lut(angle_est)));
+            {
+                complex derot_delta = std::conj(complex(cos_lut(delta_angle),sin_lut(delta_angle)));
+                for(int j = 0; j < idx_data; ++j){
+                    amp_est += delta_amp;
+                    derotate *= derot_delta;
+                    deinterleaved_cell[h[d]] = buffer_cell[j] * derotate / amp_est;
+                    ++d;
+                }
             }
             if(abs(angle_est) > M_PIf32 * 2.0f) qDebug() << angle_est;
             idx_data = 0;
@@ -200,11 +195,9 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
             break;
         case P2CARRIER_INVERTED:
         case P2CARRIER:
-            est_dif = cell * conj(old_cell);
             old_cell = cell;
             est_pilot = cell * pilot_refer;
             sum_pilot_2 += est_pilot;
-            sum_dif_2 += est_dif;
             angle = atan2_approx(est_pilot.imag(), est_pilot.real());
 
             dif_angle = angle - angle_est;
@@ -215,13 +208,15 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
             delta_angle = (dif_angle) / (idx_data + 1);
             amp = sqrt(norm(cell)) / amp_pilot;
             delta_amp = (amp - amp_est) / (idx_data + 1);
-            for(int j = 0; j < idx_data; ++j){
-                angle_est += delta_angle;
-                amp_est += delta_amp;
-                derotate.real(cos_lut(angle_est) / amp_est);
-                derotate.imag(sin_lut(angle_est) / amp_est);
-                deinterleaved_cell[h[d]] = buffer_cell[j] * conj(derotate);
-                ++d;
+            derotate = std::conj(complex(cos_lut(angle_est),sin_lut(angle_est)));
+            {
+                complex derot_delta = std::conj(complex(cos_lut(delta_angle),sin_lut(delta_angle)));
+                for(int j = 0; j < idx_data; ++j){
+                    amp_est += delta_amp;
+                    derotate *= derot_delta;
+                    deinterleaved_cell[h[d]] = buffer_cell[j] * derotate / amp_est;
+                    ++d;
+                }
             }
             idx_data = 0;
             angle_est = angle;
