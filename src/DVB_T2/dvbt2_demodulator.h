@@ -163,7 +163,7 @@ public:
     signals:
         void finished();
     public slots:
-    void execute(std::vector<complex> data, int len)
+    void execute(std::vector<complex> data, unsigned len)
     {
         if(buf.size()<len*2)
             buf.resize(len*2);
