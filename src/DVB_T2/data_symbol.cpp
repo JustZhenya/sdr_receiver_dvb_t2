@@ -99,7 +99,7 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
                               float &_sample_rate_offset, float &_phase_offset, std::vector<complex> &out)
 {
     complex* ofdm_cell = &_ofdm_cell[left_nulls];
-    complex est_pilot, est_dif;
+    complex est_pilot;
     float angle = 0.0f;
     float delta_angle = 0.0f;
     float angle_est = 0.0f;
@@ -109,8 +109,6 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
     float dif_angle = 0.0f;
     float sum_angle_1 = 0.0f;
     float sum_angle_2 = 0.0f;
-    complex sum_dif_1 = {0.0f, 0.0f};
-    complex sum_dif_2 = {0.0f, 0.0f};
     complex sum_pilot_1 = {0.0f, 0.0f};
     complex sum_pilot_2 = {0.0f, 0.0f};
     int idx_symbol = _idx_symbol;
@@ -134,13 +132,10 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
     //__for first pilot______
     cell = ofdm_cell[0];
     pilot_refer = pilot_refer_idx_data_symbol[0];
-    est_dif = cell * conj(old_cell);
     old_cell = cell;
     est_pilot = cell * pilot_refer;
-    est_dif = cell * conj(old_cell);
     old_cell = cell;
     sum_pilot_1 += est_pilot;
-    sum_dif_1 += est_dif;
     angle_est = atan2_approx(est_pilot.imag(), est_pilot.real());
     amp_est = sqrt(norm(cell)) / amp_pilot;
     //__ ... ______________
@@ -163,11 +158,9 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
 //            break;
         case SCATTERED_CARRIER_INVERTED:
         case SCATTERED_CARRIER:
-            est_dif = cell * conj(old_cell);
             old_cell = cell;
             est_pilot = cell * pilot_refer;
             sum_pilot_1 += est_pilot;
-            sum_dif_1 += est_dif;
             angle = atan2_approx(est_pilot.imag(), est_pilot.real());
 
             dif_angle = angle - angle_est;
@@ -180,13 +173,15 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
             amp = sqrt(norm(cell)) / amp_pilot;
             amp_pilot = amp_sp;
             delta_amp = (amp - amp_est) / (idx_data + 1);
-            for(int j = 0; j < idx_data; ++j){
-                angle_est += delta_angle;
-                amp_est += delta_amp;
-                derotate.real(cos_lut(angle_est) / amp_est);
-                derotate.imag(sin_lut(angle_est) / amp_est);
-                deinterleaved_cell[h[d]] = buffer_cell[j] * conj(derotate);
-                ++d;
+            derotate = std::conj(complex(cos_lut(angle_est),sin_lut(angle_est)));
+            {
+                complex derot_delta = std::conj(complex(cos_lut(delta_angle),sin_lut(delta_angle)));
+                for(int j = 0; j < idx_data; ++j){
+                    amp_est += delta_amp;
+                    derotate *= derot_delta;
+                    deinterleaved_cell[h[d]] = buffer_cell[j] * derotate / amp_est;
+                    ++d;
+                }
             }
             idx_data = 0;
             angle_est = angle;
@@ -225,7 +220,6 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
         //            break;
     case SCATTERED_CARRIER_INVERTED:
     case SCATTERED_CARRIER:
-        est_dif = cell * conj(old_cell);
         est_pilot = cell * pilot_refer;
         amp_pilot = amp_sp;
         //Only for show
@@ -263,11 +257,9 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
 //            break;
         case SCATTERED_CARRIER_INVERTED:
         case SCATTERED_CARRIER:
-            est_dif = cell * conj(old_cell);
             old_cell = cell;
             est_pilot = cell * pilot_refer;
             sum_pilot_2 += est_pilot;
-            sum_dif_2 += est_dif;
             angle = atan2_approx(est_pilot.imag(), est_pilot.real());
 
             dif_angle = angle - angle_est;
@@ -280,13 +272,15 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
             amp = sqrt(norm(cell)) / amp_pilot;
             amp_pilot = amp_sp;
             delta_amp = (amp - amp_est) / (idx_data + 1);
-            for(int j = 0; j < idx_data; ++j){
-                angle_est += delta_angle;
-                amp_est += delta_amp;
-                derotate.real(cos_lut(angle_est) / amp_est);
-                derotate.imag(sin_lut(angle_est) / amp_est);
-                deinterleaved_cell[h[d]] = buffer_cell[j] * conj(derotate);
-                ++d;
+            derotate = std::conj(complex(cos_lut(angle_est),sin_lut(angle_est)));
+            {
+                complex derot_delta = std::conj(complex(cos_lut(delta_angle),sin_lut(delta_angle)));
+                for(int j = 0; j < idx_data; ++j){
+                    amp_est += delta_amp;
+                    derotate *= derot_delta;
+                    deinterleaved_cell[h[d]] = buffer_cell[j] * derotate / amp_est;
+                    ++d;
+                }
             }
             idx_data = 0;
             angle_est = angle;
