@@ -90,6 +90,28 @@ private:
     bool done = true;
     int gain_offset = 0;
 
+    complex anti_spur{};
+    complex anti_spur_inc{};
+    static constexpr float anti_spur_alfa = 1.e-5;
+    bool anti_spur_en = false;
+    // spur list
+    static constexpr double spurs[]=
+    {
+        4.82e8,
+        5.04e8,
+        5.28e8,
+        6.48e8,
+        6.72e8,
+        6.96e8,
+        7.20e8,
+        7.44e8,
+        7.68e8,
+        7.92e8,
+        8.16e8,
+        8.40e8,
+    };
+
+
     mirisdr_dev_t*_dev;
     int err;
     convert_iq<int16_t> conv{};
