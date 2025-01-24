@@ -418,7 +418,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
         float sample_rate_offset_hz = (sample_rate_est_filtered *(float) SAMPLE_RATE) / M_PI_X_2;
         float frequency_offset_hz = (frequency_est_filtered * (float)SAMPLE_RATE) / M_PI_X_2;
 
-        emit replace_null_indicator(sample_rate_offset_hz, frequency_offset_hz);
+        emit replace_null_indicator(sample_rate_offset_hz, frequency_offset_hz, phase_est_filtered*100.f);
 
     }
 

@@ -36,7 +36,7 @@ plot::plot(QCustomPlot *_plot, type_graph _type, QString _name, QObject *parent)
 
         x_data.resize(1);
         y_data.resize(1);
-        current_plot->xAxis->setRange(0, 3);
+        current_plot->xAxis->setRange(0, 4);
         current_plot->yAxis->setRange(-3, 3);
 //        current_plot->xAxis->setLabel("samplerate - frequency");
         current_plot->yAxis->setLabel("Samplerate Hz");
@@ -50,7 +50,7 @@ plot::plot(QCustomPlot *_plot, type_graph _type, QString _name, QObject *parent)
         y_data_2.resize(1);
         current_plot->addGraph(current_plot->xAxis2, current_plot->yAxis2);
         current_plot->yAxis2->setVisible(true);
-        current_plot->xAxis2->setRange(0, 3);
+        current_plot->xAxis2->setRange(0, 4);
         current_plot->yAxis2->setRange(-100, 100);
 //        current_plot->xAxis2->setLabel("samplerate - frequency");
         current_plot->yAxis2->setLabel("Frequency Hz");
@@ -60,10 +60,17 @@ plot::plot(QCustomPlot *_plot, type_graph _type, QString _name, QObject *parent)
         current_plot->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssNone, 3));
         current_plot->graph(1)->setLineStyle(QCPGraph::lsImpulse);
 
+        current_plot->addGraph();
+        pen.setWidth(42);
+        pen.setColor(Qt::blue);
+        current_plot->graph(2)->setPen(pen);
+        current_plot->graph(2)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssNone, 3));
+        current_plot->graph(2)->setLineStyle(QCPGraph::lsImpulse);
+
         QVector<double> ticks;
         QVector<QString> labels;
-        ticks << 1 << 2;
-        labels << "samplerate" << "frequency";
+        ticks << 1 << 2 << 3;
+        labels << "samplerate" << "frequency" << "phase";
         QSharedPointer<QCPAxisTickerText> textTicker(new QCPAxisTickerText);
         textTicker->addTicks(ticks, labels);
         current_plot->xAxis->setTicker(textTicker);
@@ -143,7 +150,7 @@ void plot::replace_oscilloscope(const int _len_data, complex *_data)
     emit  repaint_plot();
 }
 //-------------------------------------------------------------------------------------------
-void plot::replace_null_indicator(const float _b1, const float _b2)
+void plot::replace_null_indicator(const float _b1, const float _b2, const float _b3)
 {
     y_data[0] = _b1;
     x_data[0] = 1;
@@ -156,6 +163,12 @@ void plot::replace_null_indicator(const float _b1, const float _b2)
 
     current_plot->graph(1)->data()->clear();
     current_plot->graph(1)->setData(x_data_2, y_data_2);
+
+    y_data[0] = _b3;
+    x_data[0] = 3;
+
+    current_plot->graph(2)->data()->clear();
+    current_plot->graph(2)->setData(x_data, y_data);
 
     emit  repaint_plot();
 }

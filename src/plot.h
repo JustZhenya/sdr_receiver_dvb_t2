@@ -44,7 +44,7 @@ public slots:
     void replace_spectrograph(const int _len_data, complex* _data);
     void replace_constelation(const int _len_data, complex* _data);
     void replace_oscilloscope(const int _len_data, complex* _data);
-    void replace_null_indicator(const float _b1, const float _b2);
+    void replace_null_indicator(const float _b1, const float _b2, const float _b3);
 
 private:
     QCustomPlot* current_plot;

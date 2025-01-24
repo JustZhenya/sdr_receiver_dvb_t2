@@ -211,7 +211,7 @@ public:
     time_deinterleaver* deinterleaver = nullptr;
 
 signals:
-    void replace_null_indicator(const float _b1, const float _b2);
+    void replace_null_indicator(const float _b1, const float _b2, const float _b3);
     void l1_dyn_execute(l1_postsignalling _l1_post);
     void amount_plp(int _num_plp);
     void data();
