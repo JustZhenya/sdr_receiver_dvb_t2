@@ -79,7 +79,6 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
 {
 
     complex* ofdm_cell = &_ofdm_cell[left_nulls];
-    complex old_cell = {-1.0f, 0.0f};
     complex est_pilot;
     float angle = 0.0f;
     float delta_angle = 0.0f;
@@ -112,9 +111,7 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
     //__for first pilot______
     cell = ofdm_cell[0];
     pilot_refer = pilot_refer_idx_p2_symbol[0];
-    old_cell = cell;
     est_pilot = cell * pilot_refer;
-    old_cell = cell;
     sum_pilot_1 += est_pilot;
     angle_est = atan2_approx(est_pilot.imag(), est_pilot.real());
     amp_est = sqrt(norm(cell)) / amp_pilot;
@@ -134,7 +131,6 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
             break;
         case P2CARRIER_INVERTED:
         case P2CARRIER:
-            old_cell = cell;
             est_pilot = cell * pilot_refer;
             sum_pilot_1 += est_pilot;
             angle = atan2_approx(est_pilot.imag(), est_pilot.real());
@@ -195,7 +191,6 @@ void p2_symbol::execute(dvbt2_parameters &_dvbt2, bool _demod_init, int &_idx_sy
             break;
         case P2CARRIER_INVERTED:
         case P2CARRIER:
-            old_cell = cell;
             est_pilot = cell * pilot_refer;
             sum_pilot_2 += est_pilot;
             angle = atan2_approx(est_pilot.imag(), est_pilot.real());

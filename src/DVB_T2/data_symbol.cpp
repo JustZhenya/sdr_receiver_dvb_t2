@@ -119,7 +119,6 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
     int* map = data_carrier_map[idx_data_symbol].data();
     float amp_pilot = amp_sp;
     complex cell;
-    complex old_cell = {0.0, 0.0};
     complex derotate;
     int idx_data = 0;
     int d = 0;
@@ -132,9 +131,7 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
     //__for first pilot______
     cell = ofdm_cell[0];
     pilot_refer = pilot_refer_idx_data_symbol[0];
-    old_cell = cell;
     est_pilot = cell * pilot_refer;
-    old_cell = cell;
     sum_pilot_1 += est_pilot;
     angle_est = atan2_approx(est_pilot.imag(), est_pilot.real());
     amp_est = sqrt(norm(cell)) / amp_pilot;
@@ -158,7 +155,6 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
 //            break;
         case SCATTERED_CARRIER_INVERTED:
         case SCATTERED_CARRIER:
-            old_cell = cell;
             est_pilot = cell * pilot_refer;
             sum_pilot_1 += est_pilot;
             angle = atan2_approx(est_pilot.imag(), est_pilot.real());
@@ -257,7 +253,6 @@ void data_symbol::execute(int _idx_symbol, complex* _ofdm_cell,
 //            break;
         case SCATTERED_CARRIER_INVERTED:
         case SCATTERED_CARRIER:
-            old_cell = cell;
             est_pilot = cell * pilot_refer;
             sum_pilot_2 += est_pilot;
             angle = atan2_approx(est_pilot.imag(), est_pilot.real());
