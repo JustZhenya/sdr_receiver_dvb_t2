@@ -241,17 +241,16 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
     int count = (*p_decode)(simd, simd + k_ldpc, trials, SIZEOF_SIMD);
     if (count < 0) {
         fprintf(stderr, "LDPC decoder could not recover the codeword! %d\n", count);
-        emit frame_finished();
-        return;
-    }
-    n_trials[count]++;
+        n_failed ++;
+    }else
+        n_trials[count]++;
     n_frames++;
     if(!(n_frames & 0x0ff))
     {
         for(int j=0;j<TRIALS;j++)
             if(n_trials[j])
-                printf("%d:%1.3f ",TRIALS-j,double(n_trials[j])*100./double(n_frames));
-        printf("\n");
+                printf("%u:%1.3f ",TRIALS-j,double(n_trials[j])*100./double(n_frames));
+        printf(" x:%u\n",n_failed);
     }
 
     int8_t *s;

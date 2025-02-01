@@ -99,6 +99,7 @@ private:
     int nqueued_frames{0};
     constexpr static int nqueued_max{64};
     unsigned n_trials[TRIALS]{0};
+    unsigned n_failed{0};
     unsigned n_frames{0};
 
     LDPCDecoder<simd_type, algorithm_type> decode_normal_cod_1_2;
