@@ -122,7 +122,7 @@ void llr_demapper::execute(int _ti_block_size, complex* _time_deint_cell,
     if(nqueued_frames<nqueued_max)
     {
         int plp_id = _plp_id;
-        l1_postsignalling l1_post = _l1_post;
+        l1_postsignalling &l1_post = _l1_post;
         int len_in = _ti_block_size;
         complex* in = _time_deint_cell;
         switch(l1_post.plp[plp_id].plp_mod){
@@ -147,10 +147,9 @@ void llr_demapper::execute(int _ti_block_size, complex* _time_deint_cell,
     mutex_in->unlock();
 }
 //------------------------------------------------------------------------------------------
-void llr_demapper::qpsk(int _plp_id, l1_postsignalling _l1_post, int _len_in, complex* _in)
+void llr_demapper::qpsk(int _plp_id, l1_postsignalling &_l1_post, int _len_in, complex* _in)
 {
     int plp_id = _plp_id;
-    idx_plp_simd_t idx_plp_simd;
     l1_postsignalling l1_post = _l1_post;
     int len_in = _len_in;
     bool derotate = false;
@@ -213,10 +212,9 @@ void llr_demapper::qpsk(int _plp_id, l1_postsignalling _l1_post, int _len_in, co
     }
 }
 //------------------------------------------------------------------------------------------
-void llr_demapper::qam16(int _plp_id, l1_postsignalling _l1_post, int _len_in, complex* _in)
+void llr_demapper::qam16(int _plp_id, l1_postsignalling &_l1_post, int _len_in, complex* _in)
 {
     int plp_id = _plp_id;
-    idx_plp_simd_t idx_plp_simd;
     l1_postsignalling l1_post = _l1_post;
     int len_in = _len_in;
     bool derotate = false;
@@ -345,11 +343,10 @@ void llr_demapper::qam16(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
     }
 }
 //------------------------------------------------------------------------------------------
-void llr_demapper::qam64(int _plp_id, l1_postsignalling _l1_post, int _len_in, complex* _in)
+void llr_demapper::qam64(int _plp_id, l1_postsignalling &_l1_post, int _len_in, complex* _in)
 {
     int plp_id = _plp_id;
-    idx_plp_simd_t idx_plp_simd;
-    l1_postsignalling l1_post = _l1_post;
+    l1_postsignalling &l1_post = _l1_post;
     int len_in = _len_in;
     bool derotate = false;
     if(l1_post.plp[plp_id].plp_rotation != 0) derotate = true;
@@ -512,10 +509,9 @@ void llr_demapper::qam64(int _plp_id, l1_postsignalling _l1_post, int _len_in, c
     }
 }
 //------------------------------------------------------------------------------------------
-void llr_demapper::qam256(int _plp_id, l1_postsignalling _l1_post, int _len_in, complex* _in)
+void llr_demapper::qam256(int _plp_id, l1_postsignalling &_l1_post, int _len_in, complex* _in)
 {
     int plp_id = _plp_id;
-    idx_plp_simd_t idx_plp_simd;
     l1_postsignalling l1_post = _l1_post;
     int len_in = _len_in;
     bool derotate = false;

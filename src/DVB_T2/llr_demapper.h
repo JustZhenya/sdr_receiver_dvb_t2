@@ -63,6 +63,7 @@ private:
     int nqueued_frames{0};
     constexpr static int nqueued_max{64};
     int8_t* out{nullptr};
+    idx_plp_simd_t idx_plp_simd{};
     complex derotate_qpsk;
     complex derotate_qam16;
     complex derotate_qam64;
@@ -123,10 +124,10 @@ private:
     const float norm_256_x14 = NORM_FACTOR_QAM256 * 14.0f;
     const float norm_256_x15 = NORM_FACTOR_QAM256 * 15.0f;
 
-    void qpsk(int _plp_id, l1_postsignalling _l1_post, int _len_in, complex* _in);
-    void qam16(int _plp_id, l1_postsignalling _l1_post, int _len_in, complex* _in);
-    void qam64(int _plp_id, l1_postsignalling _l1_post, int _len_in, complex* _in);
-    void qam256(int _plp_id, l1_postsignalling _l1_post, int _len_in, complex* _in);
+    void qpsk(int _plp_id, l1_postsignalling &_l1_post, int _len_in, complex* _in);
+    void qam16(int _plp_id, l1_postsignalling &_l1_post, int _len_in, complex* _in);
+    void qam64(int _plp_id, l1_postsignalling &_l1_post, int _len_in, complex* _in);
+    void qam256(int _plp_id, l1_postsignalling &_l1_post, int _len_in, complex* _in);
 
     inline int8_t quantize(float &_precision, float _in);
 };
