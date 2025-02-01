@@ -18,6 +18,7 @@
 #include <QCoreApplication>
 //#include <QDebug>
 #include <complex>
+#include <iostream>
 #include <math.h>
 
 typedef std::complex<float> complex;
@@ -319,6 +320,15 @@ typedef struct a_25{
     int start = 0;
     int num_blocks = 0;
     int reserved_2 = 0;
+    void dump(const std::string &pf)
+    {
+#define DD(n) std::cout<<pf<<"." #n "="<<n<<"\n"
+    DD(id);
+    DD(start);
+    DD(num_blocks);
+    DD(reserved_2);
+#undef DD
+    }
 }dynamic_plp;
 typedef struct a_26{
     int frame_idx = 0;
@@ -329,7 +339,20 @@ typedef struct a_26{
     int reserved_1 = 0;
     dynamic_plp* plp = nullptr;
     int reserved_3 = 0;
-    int* aux_private_dyn  = nullptr;
+    //std::vector<int> aux_private_dyn{};
+    int* aux_private_dyn = nullptr;
+    void dump(const std::string &pf)
+    {
+#define DD(n) std::cout<<pf<<"." #n "="<<n<<"\n"
+    DD(frame_idx);
+    DD(sub_slice_interval);
+    DD(type_2_start);
+    DD(l1_change_counter);
+    DD(start_rf_idx);
+    DD(reserved_1);
+    DD(reserved_3);
+#undef DD
+    }
 }l1_postsignalling_dynamic;
 struct l1_postsignalling{
     int sub_slices_per_frame = 0;
@@ -346,6 +369,35 @@ struct l1_postsignalling{
     l1_postsignalling_aux* aux = nullptr;
     l1_postsignalling_dynamic dyn;
     l1_postsignalling_dynamic dyn_next;
+    void dump(const std::string &pf)
+    {
+#define DD(n) std::cout<<pf<<"." #n "="<<n<<"\n"
+        std::cout<<"\n";
+        DD(sub_slices_per_frame);
+        DD(num_plp);
+        DD(num_aux);
+        DD(aux_config_rfu);
+        DD(fef_type);
+        DD(fef_length);
+        DD(fef_interval);
+        DD(fef_length_msb);
+        DD(reserved_2);
+        dyn.dump(pf+".dyn");
+        if(dyn.plp)
+            for(int k=0;k<num_plp;k++)
+                dyn.plp[k].dump(pf+"dyn.plp["+std::to_string(k)+"]");
+        if(dyn_next.aux_private_dyn)
+            for(int k=0;k<num_aux;k++)
+                std::cout<<pf<<".dyn.aux_private_dyn["<<k<<"]="<<dyn.aux_private_dyn[k]<<"\n";
+        dyn_next.dump(pf+".dyn_next");
+        if(dyn_next.plp)
+            for(int k=0;k<num_plp;k++)
+                dyn_next.plp[k].dump(pf+"dyn_next.plp["+std::to_string(k)+"]");
+        if(dyn_next.aux_private_dyn)
+            for(int k=0;k<num_aux;k++)
+                std::cout<<pf<<".dyn_next.aux_private_dyn["<<k<<"]="<<dyn_next.aux_private_dyn[k]<<"\n";
+#undef DD
+    }
 };
 Q_DECLARE_METATYPE(l1_postsignalling)
 typedef std::array<int8_t,FEC_SIZE_NORMAL * SIZEOF_SIMD> fec_frame;
