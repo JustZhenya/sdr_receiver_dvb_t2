@@ -143,7 +143,7 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
 //    }
 
     int* plp_id = &_idx_plp_simd[0];
-    l1_postsignalling l1_post = _l1_post;
+    l1_postsignalling &l1_post = _l1_post;
     int8_t* in = &_in[0];
     int len_in = _len_in;
     int k_ldpc=0;
