@@ -82,7 +82,6 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
 //                return;
 
     l1_postsignalling &l1_post = _l1_post;
-    l1_post.dump("bb_de_header");
     uint8_t* in = _in;
     dvbt2_inputmode_t mode;
     int errors = 0;
