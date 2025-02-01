@@ -99,6 +99,7 @@ private:
     QFile file{};
     QDataStream stream{};
     QUdpSocket* socket;
+    QHostAddress addr=QHostAddress("127.255.255.255");
     int id_current_out = out_network;
     QString file_name = "out_dvbt2.ts";
     unsigned short num_port_udp = 7654;

@@ -443,7 +443,7 @@ error_lengh:
 
     switch(id_current_out){
     case out_network:
-        socket->writeDatagram(&buffer_out[0], len_out, QHostAddress::LocalHost, num_port_udp);// $ vlc udp://@:7654
+        socket->writeDatagram(&buffer_out[0], len_out, addr, num_port_udp);// $ vlc udp://@:7654
         break;
     case out_file:
         stream.writeRawData(&buffer_out[0], len_out);
