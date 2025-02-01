@@ -93,6 +93,7 @@ private:
     static constexpr int len{53840 / 8 + TRANSPORT_PACKET_LENGTH * 2}; //split tail ?
     int need_plp = 0;
     uint8_t* out;
+    int len_out = 0;
     std::array<uint8_t, len> begin_out{};
     std::array<char, len> buffer_out{};
     QFile file{};

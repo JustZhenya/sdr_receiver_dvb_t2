@@ -73,6 +73,14 @@ uint8_t  bb_de_header::check_crc8_mode(uint8_t *_in, int _len_in)
     return crc;
 }
 //------------------------------------------------------------------------------------------
+template<typename T> bool unpack(T & out, const int bits, uint8_t * &in, const uint8_t * last)
+{
+    for (int i = bits - 1; (i >= 0) && (in < last); --i) {
+      out |= *in++ << i;
+    }
+    return in < last;
+}
+//------------------------------------------------------------------------------------------
 void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in, uint8_t* _in)
 {
     mutex_in->lock();
@@ -83,10 +91,10 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
 
     l1_postsignalling &l1_post = _l1_post;
     uint8_t* in = _in;
+    uint8_t* last = _in + _len_in;
     dvbt2_inputmode_t mode;
     int errors = 0;
     int len_split = 0;
-    int len_out = 0;
     uint8_t temp;
     uint8_t* ptr_error_indicator = nullptr;
     switch(check_crc8_mode(in, BB_HEADER_LENGTH_BITS)){
@@ -113,9 +121,13 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
     header.ext |= *in++;
     header.isi = 0;
     if (header.sis_mis == 0) {
-      for (int i = 7; i >= 0; --i) {
-        header.isi |= *in++ << i;
-      }
+        if(!unpack(header.isi, 8, in, last))
+        {
+error_lengh:
+            emit ts_stage("Baseband header length error.");
+            mutex_in->unlock();
+            return;
+        }
     }
     else {
         in += 8;
@@ -131,23 +143,18 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
         mutex_in->unlock();
         return;
     }
-    for (int i = 15; i >= 0; --i) {
-      header.upl |= *in++ << i;
-    } 
-    for (int i = 15; i >= 0; --i) {
-      header.dfl |= *in++ << i;
-
-    }
+    if(!unpack(header.upl, 16, in, last))
+        goto error_lengh;
+    if(!unpack(header.dfl, 16, in, last))
+        goto error_lengh;
 //    if(header.dfl > len_in - 80) {
 //        qDebug() << "bb_de_header::execute" << "header.dfl=" << header.dfl << "len_in=" << len_in;
 //        return;
 //    }
-    for (int i = 7; i >= 0; --i) {
-      header.sync |= *in++ << i;
-    }
-    for (int i = 15; i >= 0; --i) {
-      header.syncd |= *in++ << i;
-    }
+    if(!unpack(header.sync, 8, in, last))
+        goto error_lengh;
+    if(!unpack(header.syncd, 16, in, last))
+        goto error_lengh;
     if(header.syncd == 65535) {
         mutex_in->unlock();
         return;
@@ -157,10 +164,13 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
     if (mode == INPUTMODE_NORMAL) {
         if(split){
             split = false;
-            *out++ = buffer[0];
+            if(len_out<len)
+            {
+                *out++ = buffer[0];
+                ++len_out;
+            }
             ptr_error_indicator = out;
-            ++len_out;
-            for (int i = 1; i < idx_buffer; ++i) {
+            for (int i = 1; (i < idx_buffer) && (len_out < len); ++i) {
                 *out++ = buffer[i];
                 ++len_out;
             }
@@ -169,18 +179,17 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
             if(len_split == syncd_byte){
                 for (int i = 0; i < len_split; ++i) {
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
-                    }
+                    unpack(temp, 8, in, last);
                     crc = crc_table[temp ^ crc];
-                    *out++ = temp;
-                    ++len_out;
-                    ++idx_packet;
+                    if(len_out<len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
+                        ++idx_packet;
+                    }
                 }
                 temp = 0;
-                for (int n = 7; n >= 0; n--) {
-                    temp |= *in++ << n;
-                }
+                unpack(temp, 8, in, last);
                 if(temp != crc){
                     ++errors;
                     *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
@@ -190,18 +199,17 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
             else if(len_split < syncd_byte){
                 for (int i = 0; i < syncd_byte; ++i) {
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
-                    }
+                    unpack(temp, 8, in, last);
                     crc = crc_table[temp ^ crc];
-                    *out++ = temp;
-                    ++len_out;
-                    ++idx_packet;
+                    if(len_out<len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
+                        ++idx_packet;
+                    }
                 }
                 temp = 0;
-                for (int n = 7; n >= 0; n--) {
-                    temp |= *in++ << n;
-                }
+                unpack(temp, 8, in, last);
                 if(temp != crc){
                     ++errors;
                     *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
@@ -212,15 +220,16 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
             else{
                 for (int i = 0; i < syncd_byte; ++i) {
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
+                    unpack(temp, 8, in, last);
+                    if(len_out<len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
                     }
-                    *out++ = temp;
-                    ++len_out;
                     ++idx_packet;
                 }
                 int dump = len_split - syncd_byte;
-                for (int i = 0; i < dump; ++i) {
+                for (int i = 0; (i < dump) && (len_out < len); ++i) {
                     *out++ = 0xF0;
                     ++len_out;
                     ++idx_packet;
@@ -245,12 +254,10 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
                 len_split = header.dfl / 8;
                 idx_buffer = 0;
                 for (int i = 0; i < len_split; ++i) {
-                    if(idx_packet == TRANSPORT_PACKET_LENGTH) {
+                    if(idx_packet >= TRANSPORT_PACKET_LENGTH) {
                         idx_packet = 0;
                         temp = 0;
-                        for (int n = 7; n >= 0; n--) {
-                            temp |= *in++ << n;
-                        }
+                        unpack(temp, 8, in, last);
                         if(temp != crc){
                             ++errors;
                             *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
@@ -260,9 +267,7 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
                         ++idx_packet;
                     }
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
-                    }
+                    unpack(temp, 8, in, last);
                     crc = crc_table[temp ^ crc];
                     buffer[idx_buffer++] = temp;
                     ++idx_packet;
@@ -270,55 +275,62 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
                 header.dfl = 0;
             }
             else{
-                if(idx_packet == TRANSPORT_PACKET_LENGTH){
+                if(idx_packet >= TRANSPORT_PACKET_LENGTH){
                     idx_packet = 0;
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
-                    }
+                    unpack(temp, 8, in, last);
                     if(temp != crc){
                         ++errors;
                         *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                     }
                     crc = 0;
-                    *out++ = 0x47;//static_cast<unsigned char>(header.sync);
-                    ++len_out;
-                    ++idx_packet;
+                    if(len_out < len)
+                    {
+                        *out++ = 0x47;//static_cast<unsigned char>(header.sync);
+                        ++len_out;
+                        ++idx_packet;
+                    }
                     ptr_error_indicator = out;
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
-                    }
+                    unpack(temp, 8, in, last);
                     crc = crc_table[temp ^ crc];
-                    *out++ = temp;
-                    ++len_out;
-                    ++idx_packet;
+                    if(len_out < len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
+                        ++idx_packet;
+                    }
                     header.dfl -= 8;
                 }
                 else if(idx_packet == 0){
-                    *out++ = 0x47;//static_cast<unsigned char>(header.sync);
-                    ++len_out;
-                    ++idx_packet;
+                    if(len_out < len)
+                    {
+                        *out++ = 0x47;//static_cast<unsigned char>(header.sync);
+                        ++len_out;
+                        ++idx_packet;
+                    }
                     ptr_error_indicator = out;
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
-                    }
+                    unpack(temp, 8, in, last);
                     crc = crc_table[temp ^ crc];
-                    *out++ = temp;
-                    ++len_out;
-                    ++idx_packet;
+                    if(len_out < len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
+                        ++idx_packet;
+                    }
                     header.dfl -= 8;
                 }
                 else{
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
-                    }
+                    unpack(temp, 8, in, last);
                     crc = crc_table[temp ^ crc];
-                    *out++ = temp;
-                    ++len_out;
-                    ++idx_packet;
+                    if(len_out < len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
+                        ++idx_packet;
+                    }
                     header.dfl -= 8;
                 }
             }
@@ -327,7 +339,7 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
     else {
         if(split){
             split = false;
-            for (int i = 0; i < idx_buffer; ++i) {
+            for (int i = 0; (i < idx_buffer) && (len_out < len); ++i) {
                 *out++ = buffer[i];
                 ++len_out;
             }
@@ -336,23 +348,25 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
             if(len_split == syncd_byte) {
                 for (int i = 0; i < len_split; ++i) {
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
+                    unpack(temp, 8, in, last);
+                    if(len_out < len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
+                        ++idx_packet;
                     }
-                    *out++ = temp;
-                    ++len_out;
-                    ++idx_packet;
                 }
             }
             else if(len_split < syncd_byte){
                 for (int i = 0; i < len_split; ++i) {
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
+                    unpack(temp, 8, in, last);
+                    if(len_out < len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
+                        ++idx_packet;
                     }
-                    *out++ = temp;
-                    ++len_out;
-                    ++idx_packet;
                 }
                 in += header.syncd - len_split * 8;
                 emit ts_stage(QString("Baseband header resynchronizing, %1 < %2.").arg(len_split).arg(syncd_byte));
@@ -360,15 +374,16 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
             else{
                 for (int i = 0; i < syncd_byte; ++i) {
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
+                    unpack(temp, 8, in, last);
+                    if(len_out < len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
+                        ++idx_packet;
                     }
-                    *out++ = temp;
-                    ++len_out;
-                    ++idx_packet;
                 }
                 int dump = len_split - syncd_byte;
-                for (int i = 0; i < dump; ++i) {
+                for (int i = 0; (i < dump) && (len_out < len); ++i) {
                     *out++ = 0xF0;
                     ++len_out;
                     ++idx_packet;
@@ -393,29 +408,31 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
                         ++idx_packet;
                     }
                     temp = 0;
-                    for (int n = 7; n >= 0; n--) {
-                        temp |= *in++ << n;
-                    }
+                    unpack(temp, 8, in, last);
                     buffer[idx_buffer++] = temp;
                     ++idx_packet;
                 }
                 header.dfl = 0;
             }
             else{
-                if(idx_packet == TRANSPORT_PACKET_LENGTH || idx_packet == 0){
+                if(idx_packet >= TRANSPORT_PACKET_LENGTH || idx_packet == 0){
                     idx_packet = 0;
-                    *out++ = 0x47;//static_cast<unsigned char>(header.sync);
-                    ++len_out;
-                    ++idx_packet;
+                    if(len_out < len)
+                    {
+                        *out++ = 0x47;//static_cast<unsigned char>(header.sync);
+                        ++len_out;
+                        ++idx_packet;
+                    }
                 }
                 else{
                     temp = 0;
-                    for (int n = 7; n >= 0; --n) {
-                        temp |= *in++ << n;
+                    unpack(temp, 8, in, last);
+                    if(len_out < len)
+                    {
+                        *out++ = temp;
+                        ++len_out;
+                        ++idx_packet;
                     }
-                    *out++ = temp;
-                    ++len_out;
-                    ++idx_packet;
                     header.dfl -= 8;
                 }
             }
@@ -432,6 +449,7 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
         stream.writeRawData(&buffer_out[0], len_out);
         break;
     }
+    len_out = 0;
 
     if(errors != 0) emit ts_stage("TS error.");
 
