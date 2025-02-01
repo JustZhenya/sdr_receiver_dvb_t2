@@ -385,7 +385,7 @@ struct l1_postsignalling{
         dyn.dump(pf+".dyn");
         if(dyn.plp)
             for(int k=0;k<num_plp;k++)
-                dyn.plp[k].dump(pf+"dyn.plp["+std::to_string(k)+"]");
+                dyn.plp[k].dump(pf+".dyn.plp["+std::to_string(k)+"]");
         if(dyn_next.aux_private_dyn)
             for(int k=0;k<num_aux;k++)
                 std::cout<<pf<<".dyn.aux_private_dyn["<<k<<"]="<<dyn.aux_private_dyn[k]<<"\n";
