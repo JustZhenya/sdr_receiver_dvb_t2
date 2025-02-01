@@ -685,11 +685,8 @@ bool p2_symbol::l1_post_info()
     idx_l1_post_dyn_aux_shift = (l1_post.num_aux - 1) * 48;
     idx_l1_post_configurable_shift = idx_l1_post_rf_shift + idx_l1_post_fef_shift +
                                         idx_l1_post_plp_shift + idx_l1_post_aux_shift + 223;
-    if(l1_post_dyn_plp.size() != size_t(l1_post.num_plp))
-    {
-        l1_post_dyn_plp.resize(l1_post.num_plp);
-        l1_post.dyn.plp=&l1_post_dyn_plp[0];
-    }
+    if(l1_post.dyn.plp.size() != size_t(l1_post.num_plp))
+        l1_post.dyn.plp.resize(l1_post.num_plp);
     idx_l1_post_dyn_plp_shift = (l1_post.num_plp - 1) * 48;
     idx_l1_post_dyn_shift = idx_l1_post_configurable_shift + idx_l1_post_dyn_plp_shift +
                             idx_l1_post_dyn_aux_shift + 71;

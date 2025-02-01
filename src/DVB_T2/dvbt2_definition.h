@@ -362,7 +362,7 @@ typedef struct a_26{
     int l1_change_counter = 0;
     int start_rf_idx = 0;
     int reserved_1 = 0;
-    dynamic_plp* plp = nullptr;
+    std::vector<dynamic_plp> plp{};
     int reserved_3 = 0;
     std::vector<int> aux_private_dyn{};
     void dump(const std::string &pf)
@@ -410,14 +410,14 @@ struct l1_postsignalling{
             for(int k=0;k<num_plp;k++)
                 plp[k].dump(pf+".plp["+std::to_string(k)+"]");
         dyn.dump(pf+".dyn");
-        if(dyn.plp)
+        if(dyn.plp.size())
             for(int k=0;k<num_plp;k++)
                 dyn.plp[k].dump(pf+".dyn.plp["+std::to_string(k)+"]");
         if(dyn_next.aux_private_dyn.size())
             for(int k=0;k<num_aux;k++)
                 std::cout<<pf<<".dyn.aux_private_dyn["<<k<<"]="<<dyn.aux_private_dyn[k]<<"\n";
         dyn_next.dump(pf+".dyn_next");
-        if(dyn_next.plp)
+        if(dyn_next.plp.size())
             for(int k=0;k<num_plp;k++)
                 dyn_next.plp[k].dump(pf+"dyn_next.plp["+std::to_string(k)+"]");
         if(dyn_next.aux_private_dyn.size())
