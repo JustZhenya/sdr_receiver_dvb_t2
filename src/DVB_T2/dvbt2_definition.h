@@ -310,31 +310,6 @@ typedef struct a_23{
     int plp_mode = 0;
     int static_flag = 0;
     int static_padding_flag = 0;
-    void dump(const std::string &pf)
-    {
-#define DD(n) std::cout<<pf<<"." #n "="<<n<<"\n"
-    DD(id);
-    DD(plp_type);
-    DD(plp_payload_type);
-    DD(ff_flag);
-    DD(first_rf_idx);
-    DD(first_frame_idx);
-    DD(plp_group_id);
-    DD(plp_cod);
-    DD(plp_mod);
-    DD(plp_rotation);
-    DD(plp_fec_type);
-    DD(plp_num_blocks_max);
-    DD(frame_interval);
-    DD(time_il_length);
-    DD(in_band_a_flag);
-    DD(in_band_b_flag);
-    DD(reserved_1);
-    DD(plp_mode);
-    DD(static_flag);
-    DD(static_padding_flag);
-#undef DD
-    }
 }l1_postsignalling_plp;
 typedef struct a_24{
     int aux_stream_type = 0;
@@ -345,15 +320,6 @@ typedef struct a_25{
     int start = 0;
     int num_blocks = 0;
     int reserved_2 = 0;
-    void dump(const std::string &pf)
-    {
-#define DD(n) std::cout<<pf<<"." #n "="<<n<<"\n"
-    DD(id);
-    DD(start);
-    DD(num_blocks);
-    DD(reserved_2);
-#undef DD
-    }
 }dynamic_plp;
 typedef struct a_26{
     int frame_idx = 0;
@@ -365,18 +331,6 @@ typedef struct a_26{
     std::vector<dynamic_plp> plp{};
     int reserved_3 = 0;
     std::vector<int> aux_private_dyn{};
-    void dump(const std::string &pf)
-    {
-#define DD(n) std::cout<<pf<<"." #n "="<<n<<"\n"
-    DD(frame_idx);
-    DD(sub_slice_interval);
-    DD(type_2_start);
-    DD(l1_change_counter);
-    DD(start_rf_idx);
-    DD(reserved_1);
-    DD(reserved_3);
-#undef DD
-    }
 }l1_postsignalling_dynamic;
 struct l1_postsignalling{
     int sub_slices_per_frame = 0;
@@ -393,38 +347,6 @@ struct l1_postsignalling{
     std::vector<l1_postsignalling_aux> aux{};
     l1_postsignalling_dynamic dyn;
     l1_postsignalling_dynamic dyn_next;
-    void dump(const std::string &pf)
-    {
-#define DD(n) std::cout<<pf<<"." #n "="<<n<<"\n"
-        std::cout<<"\n";
-        DD(sub_slices_per_frame);
-        DD(num_plp);
-        DD(num_aux);
-        DD(aux_config_rfu);
-        DD(fef_type);
-        DD(fef_length);
-        DD(fef_interval);
-        DD(fef_length_msb);
-        DD(reserved_2);
-        if(plp.size())
-            for(int k=0;k<num_plp;k++)
-                plp[k].dump(pf+".plp["+std::to_string(k)+"]");
-        dyn.dump(pf+".dyn");
-        if(dyn.plp.size())
-            for(int k=0;k<num_plp;k++)
-                dyn.plp[k].dump(pf+".dyn.plp["+std::to_string(k)+"]");
-        if(dyn_next.aux_private_dyn.size())
-            for(int k=0;k<num_aux;k++)
-                std::cout<<pf<<".dyn.aux_private_dyn["<<k<<"]="<<dyn.aux_private_dyn[k]<<"\n";
-        dyn_next.dump(pf+".dyn_next");
-        if(dyn_next.plp.size())
-            for(int k=0;k<num_plp;k++)
-                dyn_next.plp[k].dump(pf+"dyn_next.plp["+std::to_string(k)+"]");
-        if(dyn_next.aux_private_dyn.size())
-            for(int k=0;k<num_aux;k++)
-                std::cout<<pf<<".dyn_next.aux_private_dyn["<<k<<"]="<<dyn_next.aux_private_dyn[k]<<"\n";
-#undef DD
-    }
 };
 Q_DECLARE_METATYPE(l1_postsignalling)
 typedef std::array<int8_t,FEC_SIZE_NORMAL * SIZEOF_SIMD> fec_frame;
