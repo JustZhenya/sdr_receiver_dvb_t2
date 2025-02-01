@@ -364,8 +364,7 @@ typedef struct a_26{
     int reserved_1 = 0;
     dynamic_plp* plp = nullptr;
     int reserved_3 = 0;
-    //std::vector<int> aux_private_dyn{};
-    int* aux_private_dyn = nullptr;
+    std::vector<int> aux_private_dyn{};
     void dump(const std::string &pf)
     {
 #define DD(n) std::cout<<pf<<"." #n "="<<n<<"\n"
@@ -414,14 +413,14 @@ struct l1_postsignalling{
         if(dyn.plp)
             for(int k=0;k<num_plp;k++)
                 dyn.plp[k].dump(pf+".dyn.plp["+std::to_string(k)+"]");
-        if(dyn_next.aux_private_dyn)
+        if(dyn_next.aux_private_dyn.size())
             for(int k=0;k<num_aux;k++)
                 std::cout<<pf<<".dyn.aux_private_dyn["<<k<<"]="<<dyn.aux_private_dyn[k]<<"\n";
         dyn_next.dump(pf+".dyn_next");
         if(dyn_next.plp)
             for(int k=0;k<num_plp;k++)
                 dyn_next.plp[k].dump(pf+"dyn_next.plp["+std::to_string(k)+"]");
-        if(dyn_next.aux_private_dyn)
+        if(dyn_next.aux_private_dyn.size())
             for(int k=0;k<num_aux;k++)
                 std::cout<<pf<<".dyn_next.aux_private_dyn["<<k<<"]="<<dyn_next.aux_private_dyn[k]<<"\n";
 #undef DD
