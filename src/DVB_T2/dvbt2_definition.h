@@ -383,14 +383,14 @@ struct l1_postsignalling{
     int num_plp = 0;
     int num_aux = 0;
     int aux_config_rfu = 0;
-    l1_postsignalling_rf* rf = nullptr;
+    std::vector<l1_postsignalling_rf> rf{};
     int fef_type = 0;
     int fef_length = 0;
     int fef_interval = 0;
     l1_postsignalling_plp* plp = nullptr;
     int fef_length_msb = 0;
     int reserved_2 = 0;
-    l1_postsignalling_aux* aux = nullptr;
+    std::vector<l1_postsignalling_aux> aux{};
     l1_postsignalling_dynamic dyn;
     l1_postsignalling_dynamic dyn_next;
     void dump(const std::string &pf)

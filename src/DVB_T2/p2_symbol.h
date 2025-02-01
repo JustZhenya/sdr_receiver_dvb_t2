@@ -80,11 +80,7 @@ private:
     int l1_size;
     l1_presignalling l1_pre;
     l1_postsignalling l1_post;
-    std::vector<l1_postsignalling_rf> l1_post_rf{};
     std::vector<l1_postsignalling_plp> l1_post_plp{};
-    std::vector<l1_postsignalling_aux> l1_post_aux{};
-    std::vector<dynamic_plp> l1_post_dyn_plp{};
-    std::vector<int> l1_post_dyn_aux_private_dyn{};
 
     int idx_l1_post_fef_shift = 0;
     int idx_l1_post_rf_shift = 0;

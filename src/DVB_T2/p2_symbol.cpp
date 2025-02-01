@@ -441,11 +441,8 @@ bool p2_symbol::l1_pre_info(dvbt2_parameters &_dvbt2)
             break;
         case 154:
             l1_pre.num_rf = field;
-            if(l1_post_rf.size() != size_t(field))
-            {
-                l1_post_rf.resize(field);
-                l1_post.rf=&l1_post_rf[0];
-            }
+            if(l1_post.rf.size() != size_t(field))
+                l1_post.rf.resize(field);
             idx_l1_post_rf_shift = (field - 1) * 35;
             field = 0;
             shift = 2;
@@ -672,11 +669,8 @@ bool p2_symbol::l1_post_info()
     for(int s = 3; s >= 0 ; --s){
         l1_post.num_aux |= l1_post_bit[idx++] << s;
     }
-    if(l1_post_aux.size() != size_t(l1_post.num_aux))
-    {
-        l1_post_aux.resize(l1_post.num_aux);
-        l1_post.aux=&l1_post_aux[0];
-    }
+    if(l1_post.aux.size() != size_t(l1_post.num_aux))
+        l1_post.aux.resize(l1_post.num_aux);
     idx_l1_post_aux_shift = (l1_post.num_aux - 1) * 32;
     // TODO check l1_post.num_aux != 0
 //    if(l1_post.dyn.aux_private_dyn == nullptr) l1_post.dyn.aux_private_dyn = new int[l1_post.num_aux];
