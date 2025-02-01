@@ -246,7 +246,8 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                                 demodulator_init = true;
                                 signal_->p1_reset = false;
                             }
-                        }
+                        }else
+                            frequency_est_coarse += signal_->coarse_freq_offset * M_PI_X_2 / sample_rate;
                     }
                     else{
                         frequency_est_coarse += signal_->coarse_freq_offset * M_PI_X_2 / sample_rate;
