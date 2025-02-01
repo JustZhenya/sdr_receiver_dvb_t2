@@ -105,7 +105,7 @@ private:
     bool info_already_set = false;
     QString info = "";
     int next_plp_info = 0;
-    void set_info(int _plp_id, l1_postsignalling _l1_post, dvbt2_inputmode_t mode, bb_header header);
+    void set_info(int _plp_id, l1_postsignalling &_l1_post, dvbt2_inputmode_t mode, bb_header header);
 };
 
 #endif // BB_DE_HEADER_H

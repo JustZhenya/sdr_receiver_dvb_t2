@@ -81,7 +81,8 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
 //                mutex_in->unlock();
 //                return;
 
-    l1_postsignalling l1_post = _l1_post;
+    l1_postsignalling &l1_post = _l1_post;
+    l1_post.dump("bb_de_header");
     uint8_t* in = _in;
     dvbt2_inputmode_t mode;
     int errors = 0;
@@ -207,7 +208,7 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
                     *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                 }
                 crc = 0;
-                emit ts_stage("Baseband header resynchronizing.");
+                emit ts_stage(QString("Baseband header resynchronizing, N %1 < %2.").arg(len_split).arg(syncd_byte));
             }
             else{
                 for (int i = 0; i < syncd_byte; ++i) {
@@ -227,7 +228,7 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
                 }
                 ++errors;
                 *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
-                emit ts_stage("Baseband header resynchronizing.");
+                emit ts_stage(QString("Baseband header resynchronizing, N %1 > %2.").arg(len_split).arg(syncd_byte));
             }
         }
         else {
@@ -355,7 +356,7 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
                     ++idx_packet;
                 }
                 in += header.syncd - len_split * 8;
-                emit ts_stage("Baseband header resynchronizing.");
+                emit ts_stage(QString("Baseband header resynchronizing, %1 < %2.").arg(len_split).arg(syncd_byte));
             }
             else{
                 for (int i = 0; i < syncd_byte; ++i) {
@@ -373,7 +374,7 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
                     ++len_out;
                     ++idx_packet;
                 }
-                emit ts_stage("Baseband header resynchronizing.");
+                emit ts_stage(QString("Baseband header resynchronizing, %1 > %2.").arg(len_split).arg(syncd_byte));
             }
         }
         else {
@@ -438,7 +439,7 @@ void bb_de_header::execute(int _plp_id, l1_postsignalling _l1_post, int _len_in,
     mutex_in->unlock();
 }
 //_____________________________________________________________________________________________
-void bb_de_header::set_info(int _plp_id, l1_postsignalling _l1_post,
+void bb_de_header::set_info(int _plp_id, l1_postsignalling &_l1_post,
                             dvbt2_inputmode_t mode, bb_header header)
 {
     if(_plp_id != next_plp_info) return;
