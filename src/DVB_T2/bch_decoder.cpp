@@ -63,7 +63,7 @@ void bch_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_po
 //        return;
 
     int* plp_id = &_idx_plp_simd[0];
-    l1_postsignalling l1_post = _l1_post;
+    l1_postsignalling &l1_post = _l1_post;
     int len_in = _len_in;
     uint8_t* in = &_in[0];
     int k_bch=0;
