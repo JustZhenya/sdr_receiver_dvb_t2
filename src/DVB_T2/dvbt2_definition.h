@@ -310,6 +310,31 @@ typedef struct a_23{
     int plp_mode = 0;
     int static_flag = 0;
     int static_padding_flag = 0;
+    void dump(const std::string &pf)
+    {
+#define DD(n) std::cout<<pf<<"." #n "="<<n<<"\n"
+    DD(id);
+    DD(plp_type);
+    DD(plp_payload_type);
+    DD(ff_flag);
+    DD(first_rf_idx);
+    DD(first_frame_idx);
+    DD(plp_group_id);
+    DD(plp_cod);
+    DD(plp_mod);
+    DD(plp_rotation);
+    DD(plp_fec_type);
+    DD(plp_num_blocks_max);
+    DD(frame_interval);
+    DD(time_il_length);
+    DD(in_band_a_flag);
+    DD(in_band_b_flag);
+    DD(reserved_1);
+    DD(plp_mode);
+    DD(static_flag);
+    DD(static_padding_flag);
+#undef DD
+    }
 }l1_postsignalling_plp;
 typedef struct a_24{
     int aux_stream_type = 0;
@@ -382,6 +407,9 @@ struct l1_postsignalling{
         DD(fef_interval);
         DD(fef_length_msb);
         DD(reserved_2);
+        if(plp)
+            for(int k=0;k<num_plp;k++)
+                plp[k].dump(pf+".plp["+std::to_string(k)+"]");
         dyn.dump(pf+".dyn");
         if(dyn.plp)
             for(int k=0;k<num_plp;k++)
