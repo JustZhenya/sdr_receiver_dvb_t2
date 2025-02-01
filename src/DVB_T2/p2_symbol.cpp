@@ -658,11 +658,8 @@ bool p2_symbol::l1_post_info()
     for(int s = 7; s >= 0 ; --s){
         l1_post.num_plp |= l1_post_bit[idx++] << s;
     }
-    if(l1_post_plp.size() != size_t(l1_post.num_plp))
-    {
-        l1_post_plp.resize(l1_post.num_plp);
-        l1_post.plp=&l1_post_plp[0];
-    }
+    if(l1_post.plp.size() != size_t(l1_post.num_plp))
+        l1_post.plp.resize(l1_post.num_plp);
     idx_l1_post_plp_shift = (l1_post.num_plp - 1) * 89;
     idx = 23;
     l1_post.num_aux = 0;

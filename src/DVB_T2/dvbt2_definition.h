@@ -387,7 +387,7 @@ struct l1_postsignalling{
     int fef_type = 0;
     int fef_length = 0;
     int fef_interval = 0;
-    l1_postsignalling_plp* plp = nullptr;
+    std::vector<l1_postsignalling_plp> plp{};
     int fef_length_msb = 0;
     int reserved_2 = 0;
     std::vector<l1_postsignalling_aux> aux{};
@@ -406,7 +406,7 @@ struct l1_postsignalling{
         DD(fef_interval);
         DD(fef_length_msb);
         DD(reserved_2);
-        if(plp)
+        if(plp.size())
             for(int k=0;k<num_plp;k++)
                 plp[k].dump(pf+".plp["+std::to_string(k)+"]");
         dyn.dump(pf+".dyn");
