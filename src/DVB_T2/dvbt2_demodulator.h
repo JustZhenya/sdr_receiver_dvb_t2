@@ -137,7 +137,7 @@ private:
     float level_max=0.4f;
     float level_min=0.2f;
     float theta1 = 0.0f, theta2 = 0.0f, theta3 = 0.0f;
-    static constexpr float theta_alfa = dc_ratio * 0.25;
+    static constexpr float theta_alfa = dc_ratio * 250.;
     inline void est_1_bit_quantization(float _real, float _imag)
     {
         float sgn;
@@ -257,7 +257,7 @@ private:
     float phase_est_filtered = 0.0f;
     float phase_prev = 0.f;
     constexpr static float damping_ratio_ = 0.3f;
-    constexpr static int bw_hz_ = 1000000;
+    constexpr static int bw_hz_ = 100000;
     proportional_integral_loop_filter<float, float, damping_ratio_, bw_hz_,
                                       samplerate_hz> loop_filter_phase_offset;
     float frequency_nco = 0.0f;
