@@ -253,14 +253,12 @@ private:
 
     constexpr static int samplerate_hz = SAMPLE_RATE;
 
-    float phase_nco = 0.0f;
     float phase_est_filtered = 0.0f;
     float phase_prev = 0.f;
     constexpr static float damping_ratio_ = 0.3f;
     constexpr static int bw_hz_ = 100000;
     proportional_integral_loop_filter<float, float, damping_ratio_, bw_hz_,
                                       samplerate_hz> loop_filter_phase_offset;
-    float frequency_nco = 0.0f;
     float frequency_est_filtered = 0.0f;
     float frequency_est_coarse = 0.0f;
     constexpr static float damping_ratio = 0.7f;//0.7f
@@ -292,6 +290,8 @@ private:
     fast_fourier_transform fft{};
     complex* in_fft = nullptr;
     complex* ofdm_cell;
+    complex nco = 1.f;
+
     pilot_generator pilot{};
     address_freq_deinterleaver fq_deinterleaver{};
     int next_symbol_type = SYMBOL_TYPE_P1;

@@ -110,9 +110,8 @@ void dvbt2_demodulator::reset()
 {
     loop_filter_frequency_offset.reset();
     frequency_est_filtered = 0;
-    frequency_nco = 0;
     loop_filter_phase_offset.reset();
-    phase_nco = 0.0f;
+    nco = 1.f;
     sample_rate_est_filtered = 0;
     resample =  sample_rate / (SAMPLE_RATE * upsample);
     p2_init = false;
@@ -146,7 +145,7 @@ void dvbt2_demodulator::execute(int _len_in, complex* _in, float _level_estimate
     int idx_in = 0;
     int remain;
     double arbitrary_resample;
-    float nco_real, nco_imag;
+    complex loc_nco = nco;
 
     level_detect = _level_estimate;
     while(idx_in < len_in) {
@@ -163,34 +162,17 @@ void dvbt2_demodulator::execute(int _len_in, complex* _in, float _level_estimate
         remain = len_in - idx_in;
         if(chunk > remain) chunk = remain;
 
-        phase_nco += phase_est_filtered;
-        while(phase_nco > M_PI_X_2) {
-            phase_nco -= M_PI_X_2;
-        }
-        while(phase_nco < -M_PI_X_2) {
-            phase_nco += M_PI_X_2;
-        }
+        loc_nco *= std::polar(1.f,-phase_est_filtered);
+        const complex incr = std::polar(1.f,-(frequency_est_filtered + frequency_est_coarse));
         for(int i = 0; i < chunk; ++i) {
             //___phase and frequency synchronization___
-            frequency_nco -= frequency_est_filtered + frequency_est_coarse;
-            while(frequency_nco > M_PI_X_2) {
-                frequency_nco -= M_PI_X_2;
-            }
-            while(frequency_nco < -M_PI_X_2) {
-                frequency_nco += M_PI_X_2;
-            }
-            float offset_nco = frequency_nco - phase_nco;
-            while(offset_nco > M_PI_X_2) {
-                offset_nco -= M_PI_X_2;
-            }
-            while(offset_nco < -M_PI_X_2) {
-                offset_nco += M_PI_X_2;
-            }
-            nco_real = cos_lut(offset_nco);
-            nco_imag = sin_lut(offset_nco);
-            out_derotate_sample[i]=_in[i+idx_in]*complex(nco_real,nco_imag);
+            loc_nco *= incr;
+            out_derotate_sample[i]=_in[i+idx_in]*loc_nco;
             //_____________________________
         }  
+
+        loc_nco /= std::abs(loc_nco);
+
         idx_in += chunk;
 
         //___timing synchronization___
@@ -207,7 +189,7 @@ void dvbt2_demodulator::execute(int _len_in, complex* _in, float _level_estimate
         symbol_acquisition(len_out_decimator, &out_decimator[0], signal_);
 
     }
-
+    nco = loc_nco;
     mutex->unlock();
 
 }
@@ -463,7 +445,6 @@ void dvbt2_demodulator::set_guard_interval_by_brute_force ()
     int num = 5;
     if(c == 0) {
         frequency_est_filtered = 0.0f;
-        frequency_nco = 0.0f;
     }
     switch (idx) {
     case 0:
