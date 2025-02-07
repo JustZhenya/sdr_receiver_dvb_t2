@@ -247,7 +247,7 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
     n_frames++;
     if(!(n_frames & 0x0ff))
     {
-        for(int j=0;j<TRIALS;j++)
+        for(int j=0;j<=TRIALS;j++)
             if(n_trials[j])
                 printf("%u:%1.3f ",TRIALS-j,double(n_trials[j])*100./double(n_frames));
         printf(" x:%u\n",n_failed);

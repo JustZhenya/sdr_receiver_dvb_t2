@@ -98,7 +98,7 @@ private:
     bch_decoder::in_t buffer{};
     int nqueued_frames{0};
     constexpr static int nqueued_max{64};
-    unsigned n_trials[TRIALS]{0};
+    unsigned n_trials[TRIALS + 1]{0};
     unsigned n_failed{0};
     unsigned n_frames{0};
 
