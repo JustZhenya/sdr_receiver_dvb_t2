@@ -242,6 +242,7 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
     if (count < 0) {
         fprintf(stderr, "LDPC decoder could not recover the codeword! %d\n", count);
         n_failed ++;
+        n_failed_tot ++;
     }else
         n_trials[count]++;
     n_frames++;
@@ -260,7 +261,7 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
                 printf("%u:%1.3f ",TRIALS-j,double(n_trials[j])*100./double(n_frames));
             n_trials[j]>>=1;
         }
-        printf(" x:%u\n",n_failed);
+        printf(" x:%u\n",n_failed_tot);
         n_failed >>= 1;
         n_frames >>= 1;
     }
