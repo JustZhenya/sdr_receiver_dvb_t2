@@ -192,7 +192,8 @@ error_lengh:
                 unpack(temp, 8, in, last);
                 if(temp != crc){
                     ++errors;
-                    *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
+                    if(ptr_error_indicator != nullptr)
+                        *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                 }
                 crc = 0;
             }
@@ -212,7 +213,8 @@ error_lengh:
                 unpack(temp, 8, in, last);
                 if(temp != crc){
                     ++errors;
-                    *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
+                    if(ptr_error_indicator != nullptr)
+                        *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                 }
                 crc = 0;
                 emit ts_stage(QString("Baseband header resynchronizing, N %1 < %2.").arg(len_split).arg(syncd_byte));
@@ -235,7 +237,8 @@ error_lengh:
                     ++idx_packet;
                 }
                 ++errors;
-                *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
+                if(ptr_error_indicator != nullptr)
+                    *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                 emit ts_stage(QString("Baseband header resynchronizing, N %1 > %2.").arg(len_split).arg(syncd_byte));
             }
         }
@@ -260,7 +263,8 @@ error_lengh:
                         unpack(temp, 8, in, last);
                         if(temp != crc){
                             ++errors;
-                            *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
+                            if(ptr_error_indicator != nullptr)
+                                *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                         }
                         crc = 0;
                         buffer[idx_buffer++] = 0x47;//static_cast<unsigned char>(header.sync);
@@ -281,7 +285,8 @@ error_lengh:
                     unpack(temp, 8, in, last);
                     if(temp != crc){
                         ++errors;
-                        *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
+                        if(ptr_error_indicator != nullptr)
+                            *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                     }
                     crc = 0;
                     if(len_out < len)
