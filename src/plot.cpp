@@ -140,7 +140,7 @@ void plot::replace_oscilloscope(const int _len_data, complex *_data)
     current_plot->graph(0)->setData(x_data, y_data);
     if(type == type_oscilloscope_2){
         for (int i = 0; i < len_data; i++){
-            y_data_2[i] = static_cast<double>(_data[i].imag());
+            y_data_2[i] = static_cast<double>(10.f*log10f(_data[i].imag()));
             x_data_2[i] = i;
         }
         current_plot->graph(1)->data()->clear();
@@ -270,16 +270,11 @@ void plot::greate_graph(int _len_data, complex *_data)
         y_data_2.resize(len_data);
         if(current_plot->graphCount()<2)
             current_plot->addGraph(current_plot->xAxis2, current_plot->yAxis2);
-        for(int i = 0; i < len_data; ++i){
-            d2 = static_cast<double>(_data[i].imag());
-            if(d2 > max) max = d2;
-            if(d2 < min) min = d2;
-        }
 //        current_plot->xAxis2->setVisible(true);
         current_plot->xAxis2->setRange(0, len_data);
         current_plot->yAxis2->setVisible(true);
         current_plot->yAxis2->setLabel("Amplitude");
-        current_plot->yAxis2->setRange(min - 100, max + 100);
+        current_plot->yAxis2->setRange(-20, 20);
         pen.setColor(Qt::red);
         current_plot->graph(1)->setPen(pen);
         current_plot->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssPlusCircle, 3));
