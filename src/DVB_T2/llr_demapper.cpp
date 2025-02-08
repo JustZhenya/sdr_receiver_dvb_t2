@@ -24,6 +24,7 @@
 #define ALIGNED_(x) __attribute__ ((aligned(x)))
 #endif
 #endif
+#include "aligned_ptr.h"
 
 //------------------------------------------------------------------------------------------
 llr_demapper::llr_demapper(QWaitCondition *_signal_in, QMutex* _mutex, QObject* parent) :
@@ -114,17 +115,21 @@ void llr_demapper::address_generator(int _column, int _row, int* _address, const
     }
 }
 //------------------------------------------------------------------------------------------
-void llr_demapper::execute(int _ti_block_size, complex* _time_deint_cell,
+void llr_demapper::execute(int _ti_block_size,
                                int _plp_id, l1_postsignalling _l1_post)
 {
     mutex_in->lock();
-    signal_in->wakeOne();
+    std::vector<complex> ua_in;
+    const bool shifted = fifo.shift(ua_in);
+    mutex_in->unlock();
+    if(!shifted)
+        return;
     if(nqueued_frames<nqueued_max)
     {
         int plp_id = _plp_id;
         l1_postsignalling &l1_post = _l1_post;
         int len_in = _ti_block_size;
-        complex* in = _time_deint_cell;
+        complex* in = get_aligned(&ua_in[0], alignment);;
         switch(l1_post.plp[plp_id].plp_mod){
         case MOD_64QAM:
             qam64(plp_id, l1_post, len_in, in);
@@ -144,6 +149,8 @@ void llr_demapper::execute(int _ti_block_size, complex* _time_deint_cell,
     }else{
         //signal queue overflow
     }
+    mutex_in->lock();
+    fifo.release(ua_in);
     mutex_in->unlock();
 }
 //------------------------------------------------------------------------------------------

@@ -42,7 +42,7 @@ public:
     }
 
 signals:
-    void ti_block(int _ti_block_size, complex* _time_deint_cell, int _plp_id, l1_postsignalling _l1_post);
+    void ti_block(int _ti_block_size, int _plp_id, l1_postsignalling _l1_post);
     void replace_constelation(const int _len_data, complex* _data);
     void stop_qam();
     void finished();
@@ -87,16 +87,14 @@ private:
     int frame_idx;
     int sub_slice_interval;
     bool start_t2_frame = true;
-    std::vector<complex> ua_buffer_a{};
-    std::vector<complex> ua_buffer_b{};
     constexpr static int alignment = 64;
-    complex* buffer_a = nullptr;
-    complex* buffer_b = nullptr;
+    std::vector<complex> buffer_ua{};
     int* cell_deint = nullptr;
-    complex* time_deint_cell;
+    complex* time_deint_cell = nullptr;
     bool start_swap_buffers = true;
     bool swap_buffers = true;
 
+    int len_max = 0;
     int idx_cell = 0;
     int plp_id = 0;
     int idx_time_il = 0;

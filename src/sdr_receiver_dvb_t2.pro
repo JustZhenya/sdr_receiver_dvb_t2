@@ -126,6 +126,7 @@ HEADERS += \
     main_window.h \
     plot.h \
     qcustomplot.h \
+    aligned_ptr.h \
     rx_airspy.h
 
 equals(hackrf,1): HEADERS += rx_hackrf.h

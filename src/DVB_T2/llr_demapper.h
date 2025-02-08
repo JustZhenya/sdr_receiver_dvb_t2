@@ -25,6 +25,7 @@
 
 #include "dvbt2_definition.h"
 #include "ldpc_decoder.h"
+#include "DSP/buffers.hh"
 
 typedef std::complex<float> complex;
 
@@ -35,6 +36,7 @@ public:
     explicit llr_demapper(QWaitCondition *_signal_in, QMutex* _mutex, QObject *parent = nullptr);
     ~llr_demapper();
     ldpc_decoder* decoder;
+    vector_fifo<complex> fifo{};
 
 signals:
     void signal_noise_ratio(float _snr);
@@ -43,7 +45,7 @@ signals:
     void finished();
 
 public slots:
-    void execute(int _ti_block_size, complex* _time_deint_cell,
+    void execute(int _ti_block_size,
                  int _plp_id, l1_postsignalling _l1_post);
     void stop();
     void ldpc_frame_finished();
@@ -62,6 +64,7 @@ private:
     int blocks{0};
     int nqueued_frames{0};
     constexpr static int nqueued_max{64};
+    constexpr static int alignment = 64;
     int8_t* out{nullptr};
     idx_plp_simd_t idx_plp_simd{};
     complex derotate_qpsk;

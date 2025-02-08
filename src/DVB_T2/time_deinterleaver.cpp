@@ -13,6 +13,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "time_deinterleaver.h"
+#include "aligned_ptr.h"
 
 #include <immintrin.h>
 
@@ -25,6 +26,8 @@ time_deinterleaver::time_deinterleaver(QWaitCondition* _signal_in, QMutex *_mute
     mutex_out = new QMutex;
     signal_out = new QWaitCondition;
     qam = new llr_demapper(signal_out, mutex_out);
+    qam->fifo.take(buffer_ua);
+    time_deint_cell = get_aligned(&buffer_ua[0], alignment);
     thread = new QThread;
     thread->setObjectName("llr_demapper");
     qam->moveToThread(thread);
@@ -57,7 +60,6 @@ void time_deinterleaver::start(dvbt2_parameters _dvbt2, l1_presignalling _l1_pre
     num_cols.resize(num_plp);
     permutations.resize(num_plp);
     last_frame_idx.resize(num_plp);
-    int len_max = 0;
     for(int i = 0; i < num_plp; ++i){
         switch (static_cast<dvbt2_fectype_t>(l1_post.plp[i].plp_fec_type)) {
         case FECFRAME_SHORT:
@@ -137,18 +139,10 @@ void time_deinterleaver::start(dvbt2_parameters _dvbt2, l1_presignalling _l1_pre
         last_frame_idx[i] = first_frame_idx[i] + (p_i[i] - 1) * frame_interval[i];
         if(len_max < len_buffer) len_max = len_buffer;
     }
-    ua_buffer_a.resize(len_max+alignment/sizeof(complex));
-    ua_buffer_b.resize(len_max+alignment/sizeof(complex));
-    if(ptrdiff_t(&ua_buffer_a[0])%alignment != 0)
-        buffer_a = &ua_buffer_a[(alignment-ptrdiff_t(&ua_buffer_a[0])%alignment)/sizeof(complex)];
-    else
-        buffer_a = &ua_buffer_a[0];
-    if(ptrdiff_t(&ua_buffer_b[0])%alignment != 0)
-        buffer_b = &ua_buffer_b[(alignment-ptrdiff_t(&ua_buffer_b[0])%alignment)/sizeof(complex)];
-    else
-        buffer_b = &ua_buffer_b[0];
 
     show_data.resize(len_max);
+    buffer_ua.resize(len_max+alignment/sizeof(complex));
+    time_deint_cell = get_aligned(&buffer_ua[0], alignment);
     flag_start = true;
 }
 //-------------------------------------------------------------------------------------------
@@ -301,8 +295,6 @@ void time_deinterleaver::execute()
         cell_deint = &permutations[plp_id][0];
         idx_step_ti = 0;
         idx_row_ti = 0;
-        if(swap_buffers) time_deint_cell = buffer_a;
-        else time_deint_cell = buffer_b;
     }
     for (int i = 0; i < num_cells; ++i) {
         int d = idx_step_ti + idx_row_ti;
@@ -334,16 +326,12 @@ void time_deinterleaver::execute()
                     }
                 }
                 mutex_out->lock();
-                emit ti_block(ti_block_size, time_deint_cell, plp_id, l1_post);
-                if(swap_buffers) {
-                    swap_buffers = false;
-                    time_deint_cell = buffer_b;
-                }
-                else {
-                    swap_buffers = true;
-                    time_deint_cell = buffer_a;
-                }
+                qam->fifo.push(buffer_ua);
+                qam->fifo.take(buffer_ua);
+                buffer_ua.resize(len_max+alignment/sizeof(complex));
+                time_deint_cell = get_aligned(&buffer_ua[0], alignment);
                 mutex_out->unlock();
+                emit ti_block(ti_block_size, plp_id, l1_post);
                 if(++idx_time_il == l1_post.plp[plp_id].time_il_length) {
                     idx_time_il = 0;
                     if(idx_cell == slice_end[plp_id]) {
