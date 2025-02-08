@@ -256,7 +256,7 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
     {
         for(int j=0;j<=TRIALS;j++)
             display[TRIALS-j]=complex(float(n_trials[j])*100.f/float(n_frames));
-        display[TRIALS+1]==complex(float(n_failed)*100.f/float(n_frames));
+        display[TRIALS+1]=complex(float(n_failed)*100.f/float(n_frames));
         emit replace_oscilloscope(TRIALS+2, &display[0]);
     }
     int8_t *s;
