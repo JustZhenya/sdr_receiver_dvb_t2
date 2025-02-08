@@ -82,6 +82,7 @@ signals:
     void stop_decoder();
     void finished();
     void frame_finished();
+    void replace_oscilloscope(const int _len_data, complex* _data);
 
 public slots:
     void execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_post, int _len_in, fec_frame _in);
@@ -120,6 +121,7 @@ private:
 
     void* aligned_buffer;
     simd_type *simd;
+    std::vector<complex> display{};
 
 };
 

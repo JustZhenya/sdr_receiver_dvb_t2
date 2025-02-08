@@ -158,6 +158,7 @@ private:
     plot* p1_correlation_oscilloscope;
     plot* p2_equalizer_oscilloscope;
     plot* frequency_offset;
+    plot* ldpc_stats;
 
     void disconnect_signals();
 };

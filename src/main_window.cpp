@@ -90,6 +90,7 @@ main_window::main_window(QWidget *parent)
     qam_constelation = new plot(ui->widget_qam_plot, type_constelation, "Constellation diagram");
     p2_equalizer_oscilloscope = new plot(ui->widget_equalizer_p2, type_oscilloscope_2, "Equalizer estimation");
     frequency_offset = new plot(ui->widget_fq_offset, type_null_indicator, "Frequency estimation");
+    ldpc_stats = new plot(ui->widget_ldpc_stats, type_ldpc_stats, "LDPC stats");
 
     button_group_p2_symbol = new QButtonGroup;
     button_group_p2_symbol->addButton(ui->radio_button_l1presignaling, 0);
@@ -116,6 +117,7 @@ main_window::~main_window()
     delete p2_equalizer_oscilloscope;
     delete frequency_offset;
     delete button_group_p2_symbol;
+    delete ldpc_stats;
 }
 //------------------------------------------------------------------------------------------------
 //void main_window::closeEvent(QCloseEvent *event)
@@ -773,6 +775,8 @@ void main_window::on_tab_widget_currentChanged(int index)
         disconnect_signals();
         connect(dvbt2->deinterleaver, &time_deinterleaver::replace_constelation,
                 qam_constelation, &plot::replace_constelation);
+        connect(dvbt2->deinterleaver->qam->decoder, &ldpc_decoder::replace_oscilloscope,
+                ldpc_stats, &plot::replace_oscilloscope);
         dvbt2->deinterleaver->enable_display(true);
         break;
     case 8:
@@ -828,6 +832,8 @@ void main_window::disconnect_signals()
             p2_equalizer_oscilloscope, &plot::replace_oscilloscope);
     disconnect(dvbt2, &dvbt2_demodulator::replace_null_indicator,
             frequency_offset, &plot::replace_null_indicator);
+    disconnect(dvbt2->deinterleaver->qam->decoder, &ldpc_decoder::replace_oscilloscope,
+            ldpc_stats, &plot::replace_oscilloscope);
 }
 //------------------------------------------------------------------------------------------------
 void main_window::set_show_p2_symbol(int _id)

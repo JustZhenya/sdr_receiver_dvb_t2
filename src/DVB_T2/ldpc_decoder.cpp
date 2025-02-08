@@ -105,7 +105,7 @@ ldpc_decoder::ldpc_decoder(QWaitCondition* _signal_in, QMutex *_mutex_in, QObjec
     const unsigned int len_buffer = 54000 * SIZEOF_SIMD;    // for ldpc code 5/6
     buffer.resize(len_buffer);
     bch_fec = buffer.data();
-
+    display.resize(TRIALS+2);
     mutex_out = new QMutex;
     signal_out = new QWaitCondition;
     decoder = new bch_decoder(signal_out, mutex_out);
@@ -252,7 +252,13 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
                 printf("%u:%1.3f ",TRIALS-j,double(n_trials[j])*100./double(n_frames));
         printf(" x:%u\n",n_failed);
     }
-
+    if(!(n_frames & 0x0f))
+    {
+        for(int j=0;j<=TRIALS;j++)
+            display[TRIALS-j]=complex(float(n_trials[j])*100.f/float(n_frames));
+        display[TRIALS+1]==complex(float(n_failed)*100.f/float(n_frames));
+        emit replace_oscilloscope(TRIALS+2, &display[0]);
+    }
     int8_t *s;
     for(int j = 0; j < SIZEOF_SIMD; ++j) {
         for (int i = 0; i < k_ldpc; ++i) {

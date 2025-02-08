@@ -197,6 +197,9 @@ void plot::greate_graph(int _len_data, complex *_data)
     case type_oscilloscope_2:
 
         break;
+    case type_ldpc_stats:
+
+        break;
     }
         return;
     }
@@ -292,6 +295,17 @@ void plot::greate_graph(int _len_data, complex *_data)
         break;
     case type_null_indicator:
 
+        break;
+    case type_ldpc_stats:
+        current_plot->xAxis->setLabel("Trials");
+        current_plot->xAxis->setRange(0, len_data);
+        current_plot->yAxis->setLabel("%");
+        current_plot->yAxis->setRange(0/*min*/, 100);
+        pen.setColor(Qt::green);
+        current_plot->graph(0)->setPen(pen);
+        current_plot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssPlusCircle, 3));
+        connect(current_plot->xAxis, SIGNAL(rangeChanged(QCPRange)),
+                current_plot->xAxis2, SLOT(setRange(QCPRange)));
         break;
     }
     current_plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom/* | QCP::iSelectPlottables*/);

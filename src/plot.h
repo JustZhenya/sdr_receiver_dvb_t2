@@ -28,7 +28,8 @@ enum type_graph{
     type_constelation,
     type_oscilloscope,
     type_oscilloscope_2,
-    type_null_indicator
+    type_null_indicator,
+    type_ldpc_stats,
 };
 class plot : public QObject
 {
