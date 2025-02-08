@@ -245,19 +245,24 @@ void ldpc_decoder::execute(idx_plp_simd_t _idx_plp_simd, l1_postsignalling _l1_p
     }else
         n_trials[count]++;
     n_frames++;
-    if(!(n_frames & 0x0ff))
-    {
-        for(int j=0;j<=TRIALS;j++)
-            if(n_trials[j])
-                printf("%u:%1.3f ",TRIALS-j,double(n_trials[j])*100./double(n_frames));
-        printf(" x:%u\n",n_failed);
-    }
     if(!(n_frames & 0x0f))
     {
         for(int j=0;j<=TRIALS;j++)
             display[TRIALS-j]=complex(float(n_trials[j])*100.f/float(n_frames));
         display[TRIALS+1]=complex(float(n_failed)*100.f/float(n_frames));
         emit replace_oscilloscope(TRIALS+2, &display[0]);
+    }
+    if(!(n_frames & 0x0ff))
+    {
+        for(int j=0;j<=TRIALS;j++)
+        {
+            if(n_trials[j])
+                printf("%u:%1.3f ",TRIALS-j,double(n_trials[j])*100./double(n_frames));
+            n_trials[j]>>=1;
+        }
+        printf(" x:%u\n",n_failed);
+        n_failed >>= 1;
+        n_frames >>= 1;
     }
     int8_t *s;
     for(int j = 0; j < SIZEOF_SIMD; ++j) {
