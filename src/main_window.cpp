@@ -866,7 +866,7 @@ void main_window::on_combo_box_plp_id_currentIndexChanged(int index)
 //------------------------------------------------------------------------------------------------
 void main_window::signal_noise_ratio(float _snr)
 {
-    ui->label_snr->setText("SNR : " + QString::number(static_cast<int>(_snr)) + "dB");
+    ui->label_snr->setText("SNR : " + QString::number(static_cast<double>(_snr),'f',2) + "dB");
 }
 //------------------------------------------------------------------------------------------------
 void main_window::view_l1_presignalling(QString _text)
