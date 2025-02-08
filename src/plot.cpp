@@ -177,7 +177,7 @@ void plot::greate_graph(int _len_data, complex *_data)
 {
     const int len_data = _len_data;
     double max = 0, min = 0;
-    double d,d2;
+    double d;
     if (check_len_data == _len_data)
     {
     switch (type) {
