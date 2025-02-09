@@ -58,6 +58,7 @@ private:
     int check_len_data = 0;
     type_graph type;
     QString name;
+    float ref_y2 = 0.f;
     void greate_graph(int _len_data, complex *_data = nullptr);
 
     void calc_frame_per_sec();

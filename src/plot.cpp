@@ -152,6 +152,7 @@ void plot::replace_oscilloscope(const int _len_data, complex *_data)
 //-------------------------------------------------------------------------------------------
 void plot::replace_null_indicator(const float _b1, const float _b2, const float _b3)
 {
+    greate_graph(3, nullptr);
     y_data[0] = _b1;
     x_data[0] = 1;
 
@@ -163,6 +164,10 @@ void plot::replace_null_indicator(const float _b1, const float _b2, const float 
 
     current_plot->graph(1)->data()->clear();
     current_plot->graph(1)->setData(x_data_2, y_data_2);
+
+    float abs_b2 = std::abs(_b2);
+    if((abs_b2 > 1.1f * ref_y2) || (abs_b2 < 0.6f * ref_y2))
+        current_plot->yAxis2->setRange(-abs_b2 * 1.2f, ref_y2 = abs_b2 * 1.2f);
 
     y_data[0] = _b3;
     x_data[0] = 3;
