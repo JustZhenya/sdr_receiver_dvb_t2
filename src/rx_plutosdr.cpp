@@ -1,7 +1,7 @@
 #include "rx_plutosdr.h"
+#include "rx_base.cpp"
 
 #include <QFile>
-#include <QThread>
 #include <errno.h>
 #include <chrono>
 #include <sys/stat.h>
@@ -31,10 +31,18 @@
 #endif
 
 //-------------------------------------------------------------------------------------------
-rx_plutosdr::rx_plutosdr(QObject *parent) : QObject(parent)
+rx_plutosdr::rx_plutosdr(QObject *parent) : rx_base(parent)
 {
+    len_out_device = 128 * 1024 * 4;
+    max_blocks = 32 * 8;
+    GAIN_MAX = 71;
+    GAIN_MIN = 0;
+    blocking_start = false;
     conv.init(1, 1.0f / (1 << 11), 0.04f, 0.02f);
-
+}
+//-------------------------------------------------------------------------------------------
+rx_plutosdr::~rx_plutosdr()
+{
 }
 //-------------------------------------------------------------------------------------------
 std::string rx_plutosdr::error (int _err)
@@ -78,7 +86,6 @@ int rx_plutosdr::get(std::string &_ser_no, std::string &_hw_ver)
     err = plutosdr_open(&device, 0, &info);
     if(err == PLUTOSDR_SUCCESS){
         len_out_device = info.len_out;
-        max_len_out = len_out_device * max_blocks;
         for(int i = 0; i < info.serial_number_len; ++i){
             _ser_no += reinterpret_cast<char&>(info.serial_number[i]);
         }
@@ -89,29 +96,20 @@ int rx_plutosdr::get(std::string &_ser_no, std::string &_hw_ver)
     return err;
 }
 //-------------------------------------------------------------------------------------------
-int rx_plutosdr::init(uint64_t _rf_frequence_hz, int _gain)
+int rx_plutosdr::hw_init(uint32_t _rf_frequence_hz, int _gain)
 {
     int err;
-    rf_frequency = _rf_frequence_hz;
-    ch_frequency = rf_frequency;
-    sample_rate_hz = DEFAULT_SAMPLE_RATE;
-    if(_gain < 0) {
-        gain_db = 0;
-        agc = true;
-    }
-    else {
-        gain_db = static_cast<uint32_t>(_gain);
-    }
+    sample_rate = DEFAULT_SAMPLE_RATE;
     // set this first!
     err = plutosdr_set_rfbw(device, 8000000);
     if(err < 0) return err;
-    err = plutosdr_set_sample_rate(device, sample_rate_hz);
+    err = plutosdr_set_sample_rate(device, sample_rate);
     if(err < 0) return err;
     err = plutosdr_set_rxlo(device, rf_frequency);
     if(err < 0) return err;
     err = plutosdr_set_gainctl_manual(device);
     if(err < 0) return err;
-    err = plutosdr_set_gain_mdb(device, gain_db * 1000);
+    err = plutosdr_set_gain_mdb(device, gain * 1000);
     if(err < 0) return err;
     //
     err = plutosdr_buffer_channel_enable(device, 0, 1);
@@ -121,105 +119,33 @@ int rx_plutosdr::init(uint64_t _rf_frequence_hz, int _gain)
     err = plutosdr_bufstream_enable(device, 1);
     if(err < 0) return err;
 
-    buffer_a.resize(max_len_out);
-    buffer_b.resize(max_len_out);
-
-    signal.agc = agc;
-
-    demodulator = new dvbt2_demodulator(id_plutosdr, static_cast<float>(sample_rate_hz));
-    thread = new QThread;
-    thread->setObjectName("demod");
-    demodulator->moveToThread(thread);
-    connect(this, &rx_plutosdr::execute, demodulator, &dvbt2_demodulator::execute);
-    connect(this, &rx_plutosdr::stop_demodulator, demodulator, &dvbt2_demodulator::stop);
-    connect(demodulator, &dvbt2_demodulator::finished, demodulator, &dvbt2_demodulator::deleteLater);
-    connect(demodulator, &dvbt2_demodulator::finished, thread, &QThread::quit, Qt::DirectConnection);
-    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
-    thread->start();
-
     return PLUTOSDR_SUCCESS;
 }
 //-------------------------------------------------------------------------------------------
-void rx_plutosdr::start()
+int rx_plutosdr::hw_start()
 {
-    reset();
     int err = plutosdr_start_rx(device, plutosdr_callback, this);
     fprintf(stderr, "plutosdr start rx %d\n", err);
+    return err;
+}
+
+//-------------------------------------------------------------------------------------------
+int rx_plutosdr::hw_set_frequency()
+{
+    return plutosdr_set_rxlo(device, rf_frequency);
 }
 //-------------------------------------------------------------------------------------------
-void rx_plutosdr::reset()
+void rx_plutosdr::on_frequency_changed()
 {
-    signal.reset = false;
-    rf_frequency = ch_frequency;
-    signal.coarse_freq_offset = 0.0;
-    signal.change_frequency = true;
-    signal.correct_resample = 0.0;
-    if(agc) {
-        gain_db = 0;
-    }
-    signal.gain_offset = 0;
-    signal.change_gain = true;
-    ptr_buffer = &buffer_a[0];
-    swap_buffer = true;
-    len_buffer = 0;
-    blocks = 1;
-    set_rf_frequency();
-    set_gain();
-    conv.reset();
 }
 //-------------------------------------------------------------------------------------------
-void rx_plutosdr::set_rf_frequency()
+int rx_plutosdr::hw_set_gain()
 {
-    if(!signal.frequency_changed) {
-        end_wait_frequency_changed = clock();
-        float mseconds = (end_wait_frequency_changed - start_wait_frequency_changed) /
-                         (CLOCKS_PER_SEC / 1000);
-        if(mseconds > 200) {
-            signal.frequency_changed = true;
-            emit radio_frequency(rf_frequency);
-        }
-    }
-    if(signal.change_frequency) {
-        signal.change_frequency = false;
-        signal.correct_resample = signal.coarse_freq_offset / static_cast<double>(rf_frequency);
-        rf_frequency += static_cast<uint64_t>(signal.coarse_freq_offset);
-        int err = plutosdr_set_rxlo(device, rf_frequency);
-        if(err < 0) {
-            emit status(err);
-        }
-        else{
-            signal.frequency_changed = false;
-            start_wait_frequency_changed = clock();
-        }
-    }
+    return plutosdr_set_gain_mdb(device, gain * 1000);
 }
 //-------------------------------------------------------------------------------------------
-void rx_plutosdr::set_gain()
+void rx_plutosdr::on_gain_changed()
 {
-    if(!signal.gain_changed) {
-        end_wait_gain_changed = clock();
-        float mseconds = (end_wait_gain_changed - start_wait_gain_changed) /
-                         (CLOCKS_PER_SEC / 1000);
-        if(mseconds > 70) {
-            signal.gain_changed = true;
-            emit level_gain(gain_db);
-        }
-    }
-    if(agc && signal.change_gain) {
-        signal.change_gain = false;
-        gain_db += signal.gain_offset;
-        if(gain_db == 71) {
-            gain_db = 0;
-        }
-        int err = plutosdr_set_gain_mdb(device, gain_db * 1000);
-        if(err < 0) {
-            emit status(err);
-        }
-        else{
-            signal.gain_changed = false;
-            start_wait_gain_changed = clock();
-        }
-    }
 }
 //-------------------------------------------------------------------------------------------
 int rx_plutosdr::plutosdr_callback(plutosdr_transfer* _transfer)
@@ -243,62 +169,13 @@ void rx_plutosdr::rx_execute(int16_t* _rx_i, int16_t* _rx_q)
 {
     float level_detect=std::numeric_limits<float>::max();
     conv.execute(0,len_out_device, _rx_i, _rx_q,ptr_buffer,level_detect,signal);
-    len_buffer += len_out_device;
-    ptr_buffer += len_out_device;
-
-    if(demodulator->mutex->try_lock()) {
-
-        if(signal.reset){
-            reset();
-
-            demodulator->mutex->unlock();
-
-            return;
-
-        }
-        // coarse frequency setting
-        set_rf_frequency();
-        // AGC
-        set_gain();
-
-        if(swap_buffer) {
-            emit execute(len_buffer, &buffer_a[0], level_detect, &signal);
-            ptr_buffer = buffer_b.data();
-        }
-        else {
-            emit execute(len_buffer, &buffer_b[0], level_detect, &signal);
-            ptr_buffer = buffer_a.data();
-        }
-        swap_buffer = !swap_buffer;
-        len_buffer = 0;
-        blocks = 1;
-
-        demodulator->mutex->unlock();
-
-    }
-    else {
-        ++blocks;
-        if(blocks > max_blocks) {
-            fprintf(stderr, "reset buffer blocks: %d\n", blocks);
-            blocks = 1;
-            len_buffer = 0;
-            if(swap_buffer) {
-                ptr_buffer = buffer_a.data();
-            }
-            else {
-                ptr_buffer = buffer_b.data();
-            }
-        }
-    }
+    rx_base::rx_execute(len_out_device, level_detect);
 }
 //-------------------------------------------------------------------------------------------
-void rx_plutosdr::stop()
+void rx_plutosdr::hw_stop()
 {
     done = false;
     reboot();
-    emit stop_demodulator();
-    if(thread->isRunning()) thread->wait(1000);
-    emit finished();
 }
 //-------------------------------------------------------------------------------------------
 void rx_plutosdr::reboot()

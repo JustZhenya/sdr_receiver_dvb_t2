@@ -13,14 +13,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "rx_miri.h"
+#include "rx_base.cpp"
 
-#include <QThread>
-#include <QWaitCondition>
-#include <QMutex>
 
 //----------------------------------------------------------------------------------------------------------------------------
-rx_miri::rx_miri(QObject *parent) : QObject(parent)
+rx_miri::rx_miri(QObject *parent) : rx_base(parent)
 {
+    len_out_device = 128 * 1024 * 4;
+    max_blocks = 256;
+    GAIN_MAX = 104;
+    GAIN_MIN = 0;
+    blocking_start = true;
     conv.init(2, 1.0f / (1 << 15), 0.03f, 0.015f);
 
 }
@@ -57,152 +60,55 @@ int rx_miri::get(std::string &_ser_no, std::string &_hw_ver)
   if(devices.size() == 0)
     return -1;
   _ser_no = devices[0];
+  _hw_ver = "0";
   return 0;
 }
 
 //----------------------------------------------------------------------------------------------------------------------------
-int rx_miri::init(double _rf_frequency, int _gain_db)
+int rx_miri::hw_init(uint32_t _rf_frequency, int _gain_db)
 {
     int ret = 0;
     static char fmt[] = "336_S16\x00";
     //static char fmt[] = "504_S16\x00";
     fprintf(stderr,"miri init\n");
-    rf_frequency = _rf_frequency;
-    ch_frequency = _rf_frequency;
-    gain_db = _gain_db;
-    if(gain_db < 0) {
-        gain_db = 20;
-        agc = true;
-    }
     sample_rate = 9000000.0f;
     ret = mirisdr_open( &_dev, 0 );
+    if(ret != 0) return ret;
     mirisdr_set_sample_format( _dev, fmt);
     mirisdr_set_sample_rate( _dev, sample_rate );
-    mirisdr_set_center_freq( _dev, uint32_t(rf_frequency) );
-    gain_db = _gain_db;
+    mirisdr_set_center_freq( _dev, rf_frequency );
     ret = mirisdr_set_bandwidth( _dev, 12000000 );
-
     if(ret != 0) return ret;
-
-    max_len_out = len_out_device * max_blocks;
-    buffer_a.resize(max_len_out);
-    buffer_b.resize(max_len_out);
-
-    demodulator = new dvbt2_demodulator(id_miri, sample_rate);
-    thread = new QThread;
-    thread->setObjectName("demod");
-    demodulator->moveToThread(thread);
-    connect(this, &rx_miri::execute, demodulator, &dvbt2_demodulator::execute, Qt::QueuedConnection);
-    connect(this, &rx_miri::stop_demodulator, demodulator, &dvbt2_demodulator::stop);
-    connect(demodulator, &dvbt2_demodulator::finished, demodulator, &dvbt2_demodulator::deleteLater);
-    connect(demodulator, &dvbt2_demodulator::finished, thread, &QThread::quit, Qt::DirectConnection);
-    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
-    thread->start();
-
-    signal.agc = agc;
-
-    reset();
-
     return ret;
 }
 //-------------------------------------------------------------------------------------------
-void rx_miri::reset()
+int rx_miri::hw_set_frequency()
 {
-    signal.reset = false;
-    rf_frequency = ch_frequency;
-    signal.coarse_freq_offset = 0.0;
-    signal.change_frequency = true;
-    signal.correct_resample = 0.0;
-    if(agc) {
-        gain_db = 20;
+    int err = mirisdr_set_center_freq( _dev, uint32_t(rf_frequency) );
+    if(err == 0)
+    {
+        conv.enable_anti_spur(false);
+        for(unsigned k = 0 ; k < sizeof(spurs)/sizeof(spurs[0]) ; k++)
+            if(std::abs(rf_frequency-spurs[k])<double(sample_rate))
+            {
+                conv.set_anti_spur(std::polar(1.f,float((spurs[k] - rf_frequency) * M_PI_X_2 / double(sample_rate))));
+                break;
+            }
     }
-    signal.gain_offset = 0;
-    signal.change_gain = true;
-    ptr_buffer = buffer_a.data();
-    swap_buffer = true;
-    len_buffer = 0;
-    blocks = 1;
-    set_rf_frequency();
-    set_gain(true);
-    conv.reset();
-
-    qDebug() << "rx_miri::reset";
+    return err;
 }
 //-------------------------------------------------------------------------------------------
-void rx_miri::set_rf_frequency()
+void rx_miri::on_frequency_changed()
 {
-//    printf("rx_miri::set_rf_frequency %f\n", signal.coarse_freq_offset);
-    if(!signal.frequency_changed){
-        end_wait_frequency_changed = clock();
-        float mseconds = (end_wait_frequency_changed - start_wait_frequency_changed) /
-                         (CLOCKS_PER_SEC / 1000);
-        if(mseconds > 100) {
-            signal.frequency_changed = true;
-            emit radio_frequency(rf_frequency);
-        }
-    }
-    if(signal.change_frequency) {
-        signal.change_frequency = false;
-        frequency_changed = false;
-        signal.frequency_changed = false;
-//        signal.correct_resample = signal.coarse_freq_offset / rf_frequency;
-        rf_frequency += signal.coarse_freq_offset;
-        int err=mirisdr_set_center_freq( _dev, uint32_t(rf_frequency) );
-        if(err != 0) {
-            emit status(err);
-        }
-        else{
-            signal.frequency_changed = false;
-            start_wait_frequency_changed = clock();
-            conv.enable_anti_spur(false);
-            for(unsigned k = 0 ; k < sizeof(spurs)/sizeof(spurs[0]) ; k++)
-                if(std::abs(rf_frequency-spurs[k])<double(sample_rate))
-                {
-                    conv.set_anti_spur(std::polar(1.f,float((spurs[k] - rf_frequency) * M_PI_X_2 / double(sample_rate))));
-                    break;
-                }
-        }
-    }
 }
 //-------------------------------------------------------------------------------------------
-void rx_miri::set_gain(bool force)
+int rx_miri::hw_set_gain()
 {
-    if(!signal.gain_changed){
-        end_wait_gain_changed = clock();
-        float mseconds = (end_wait_gain_changed - start_wait_gain_changed) /
-                         (CLOCKS_PER_SEC / 1000);
-        if(mseconds > 20) {
-            signal.gain_changed = true;
-            emit level_gain(gain_db);
-        }
-    }
-    if((agc && signal.change_gain) || force) {
-        signal.change_gain = false;
-        gain_changed = false;
-        signal.gain_changed = false;
-        gain_db += signal.gain_offset;
-        int err=mirisdr_set_tuner_gain( _dev, gain_db );
-        if(err != 0) {
-            emit status(err);
-        }
-        else{
-            signal.gain_changed = false;
-            start_wait_gain_changed = clock();
-        }
-    }
+    return mirisdr_set_tuner_gain( _dev, gain );
 }
-//----------------------------------------------------------------------------------------------------------------------------
-void rx_miri::set_gain_db(int gain)
+//-------------------------------------------------------------------------------------------
+void rx_miri::on_gain_changed()
 {
-    int err=mirisdr_set_tuner_gain( _dev, gain );
-    gain_db = gain;
-    if(err != 0) {
-        emit status(err);
-    }
-    else{
-        signal.gain_changed = false;
-        start_wait_gain_changed = clock();
-    }
 }
 //----------------------------------------------------------------------------------------------------------------------------
 void rx_miri::callback(unsigned char *buf, uint32_t len, void *context)
@@ -214,6 +120,18 @@ void rx_miri::callback(unsigned char *buf, uint32_t len, void *context)
     ctx->rx_execute(buf,len/2);
 }
 //----------------------------------------------------------------------------------------------------------------------------
+void rx_miri::update_gain_frequency_direct()
+{
+    // coarse frequency setting
+    set_rf_frequency();
+    // AGC
+    set_gain();
+}
+//-------------------------------------------------------------------------------------------
+void rx_miri::update_gain_frequency()
+{
+}
+//-------------------------------------------------------------------------------------------
 void rx_miri::rx_execute(void *in_ptr, int nsamples)
 {
     int16_t * ptr = (int16_t*)in_ptr;
@@ -223,74 +141,22 @@ void rx_miri::rx_execute(void *in_ptr, int nsamples)
     float level_detect=std::numeric_limits<float>::max();
     conv.execute(0,nsamples, &ptr[0], &ptr[1],ptr_buffer,level_detect,signal);
 
-    len_buffer += nsamples;
-    ptr_buffer += nsamples;
-
-    if(demodulator->mutex->try_lock()) {
-
-        if(signal.reset){
-            reset();
-
-            demodulator->mutex->unlock();
-
-            return;
-
-        }
-        emit buffered(len_buffer/nsamples, max_blocks);
-        #if 0
-        // coarse frequency setting
-        set_rf_frequency();
-        // AGC
-        set_gain();
-        #endif
-
-        if(swap_buffer) {
-            emit execute(len_buffer, &buffer_a[0], level_detect, &signal);
-            ptr_buffer = buffer_b.data();
-        }
-        else {
-            emit execute(len_buffer, &buffer_b[0], level_detect, &signal);
-            ptr_buffer = buffer_a.data();
-        }
-        swap_buffer = !swap_buffer;
-        len_buffer = 0;
-        blocks = 1;
-
-        demodulator->mutex->unlock();
-    }
-    else {
-        ++blocks;
-        if(blocks > max_blocks){
-            fprintf(stderr, "reset buffer blocks: %d\n", blocks);
-            blocks = 1;
-            len_buffer = 0;
-            if(swap_buffer) {
-                ptr_buffer = buffer_a.data();
-            }
-            else {
-                ptr_buffer = buffer_b.data();
-            }
-        }
-    }
+    rx_base::rx_execute(nsamples, level_detect);
 }
 //----------------------------------------------------------------------------------------------------------------------------
-void rx_miri::start()
+int rx_miri::hw_start()
 {
-    reset();
-    int err;
-    ptr_buffer = buffer_a.data();
+    int err = 0;
     err = mirisdr_reset_buffer(_dev);
     err = mirisdr_read_async( _dev, callback, (void *)this, 64, len_out_device );
     mirisdr_set_bias( _dev, 0 );
     mirisdr_close(_dev);
     len_buffer = 0;
-    emit stop_demodulator();
-    if(thread->isRunning()) thread->wait(1000);
-    emit finished();
     fprintf(stderr, "mirisdr start rx %d\n", err);
+    return err;
 }
 //-------------------------------------------------------------------------------------------
-void rx_miri::stop()
+void rx_miri::hw_stop()
 {
     done = false;
     mirisdr_cancel_async( _dev );

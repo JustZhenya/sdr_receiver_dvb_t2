@@ -18,6 +18,8 @@
 #include <QMainWindow>
 //#define USE_SDRPLAY
 
+#include "rx_interface.h"
+
 #ifdef USE_SDRPLAY
 #include "rx_sdrplay.h"
 #endif
@@ -64,30 +66,22 @@ signals:
 private slots:
 #ifdef USE_SDRPLAY
     void open_sdrplay();
-    void status_sdrplay(int _err);
 #endif
     void open_airspy();
-    void status_airspy(int _err);
 #ifndef WIN32
     void open_plutosdr();
-    void status_plutosdr(int _err);
 #endif
-
 #ifdef USE_HACKRF
     void open_hackrf();
-    void status_hackrf(int _err);
-    void finished_hackrf();
 #endif
 #ifdef USE_MIRI
     void open_miri();
-    void status_miri(int _err);
-    void finished_miri();
 #endif
 #ifdef USE_USRP
     void open_usrp();
-    void status_usrp(int _err);
-    void finished_usrp();
 #endif
+    void status_dev(int _err);
+    void finished_dev();
 
     void update_buffered(int nbuffers, int totalbuffers);
 
@@ -120,27 +114,10 @@ private:
     id_device_t id_device;
     dvbt2_demodulator* dvbt2;
     QThread* thread = nullptr;
-    rx_airspy* ptr_airspy;
-#ifdef USE_SDRPLAY
-    rx_sdrplay* ptr_sdrplay;
-#endif
-#ifdef USE_HACKRF
-    rx_hackrf* ptr_hackrf;
-#endif
-#ifdef USE_MIRI
-    rx_miri* ptr_miri;
-#endif
-    int start_miri();
+    rx_interface* ptr_dev = nullptr;
+    bool enable_gain_updates{false};
+    int start_dev();
     int start_sdrplay();
-    int start_airspy();
-#ifdef USE_USRP
-    rx_usrp* ptr_usrp;
-#endif
-    int start_usrp();
-#ifndef WIN32
-    rx_plutosdr* ptr_plutosdr;
-    int start_plutosdr();
-#endif
     int start_hackrf();
     void connect_info();
     void disconnect_info();
@@ -161,5 +138,6 @@ private:
     plot* ldpc_stats;
 
     void disconnect_signals();
+    template<typename T> void open_dev();
 };
 #endif // MAINWINDOW_H

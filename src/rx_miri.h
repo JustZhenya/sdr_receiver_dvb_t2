@@ -22,73 +22,33 @@
 #include <vector>
 #include <mirisdr.h>
 
-#include "DVB_T2/dvbt2_demodulator.h"
+#include "rx_base.h"
 
-class rx_miri : public QObject
+class rx_miri : virtual public rx_base<int16_t>
 {
-    Q_OBJECT
 public:
     explicit rx_miri(QObject* parent = nullptr);
-    ~rx_miri();
+    virtual ~rx_miri();
 
-    std::string error (int err);
-    int get(std::string &_ser_no, std::string &_hw_ver);
-    int init(double _rf_frequency, int _gain_db);
-    dvbt2_demodulator* demodulator;
+    std::string error (int err) override;
+    int get(std::string &_ser_no, std::string &_hw_ver) override;
+    void update_gain_frequency_direct() override;
+    const QString dev_name() override
+    {
+        return "Miri SDR";
+    }
+    const QString thread_name() override
+    {
+        return "rx_miri";
+    }
 
-signals:
-    void execute(int _len_in, complex* _in, float _level_estimate, signal_estimate* signal_);
-    void status(int _err);
-    void radio_frequency(double _rf);
-    void level_gain(int _gain);
-    void stop_demodulator();
-    void finished();
-    void buffered(int nbuffers, int totalbuffers);
-
-public slots:
-    void start();
-    void stop();
-    void set_rf_frequency();
-    void set_gain(bool force=false);
-    void set_gain_db(int gain);
 private:
     void rx_execute(void *ptr, int nsamples);
     static void callback(unsigned char *buf, uint32_t len, void *context);
 
 private:
-    QThread* thread;
-    signal_estimate signal{};
 
-    int gain_db;
-    bool gain_changed;
-    double rf_frequency;
-    double ch_frequency;
-    bool frequency_changed;
-
-    float sample_rate;
-    int max_len_out;
-
-    std::vector<complex> buffer_a;
-    std::vector<complex> buffer_b;
-    complex* ptr_buffer;
-    int  blocks = 1;
-    const int len_out_device = 128*1024*4;
-    const int max_blocks = 256;
-    int len_buffer = 0;
-    bool swap_buffer = true;
-
-    int64_t rf_bandwidth_hz;
-    int64_t sample_rate_hz;
-    clock_t start_wait_frequency_changed;
-    clock_t end_wait_frequency_changed;
-    float frequency_offset = 0.0f;
-    bool change_frequency = false;
-    clock_t start_wait_gain_changed;
-    clock_t end_wait_gain_changed;
-    bool agc = false;
-    bool change_gain = false;
     bool done = true;
-    int gain_offset = 0;
 
     // spur list
     static constexpr double spurs[]=
@@ -107,11 +67,16 @@ private:
         8.40e8,
     };
 
-
     mirisdr_dev_t*_dev;
-    int err;
-    convert_iq<int16_t> conv{};
-    void reset();
+
+    int hw_init(uint32_t _rf_frequency_hz, int _gain) override;
+    int hw_set_frequency() override;
+    void on_frequency_changed() override;
+    int hw_set_gain() override;
+    void on_gain_changed() override;
+    void update_gain_frequency() override;
+    void hw_stop() override;
+    int hw_start() override;
 };
 
 #endif // RX_MIRISDR_H

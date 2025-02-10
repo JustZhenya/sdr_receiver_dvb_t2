@@ -21,80 +21,40 @@
 #include <string>
 #include <libhackrf/hackrf.h>
 
-#include "DVB_T2/dvbt2_demodulator.h"
+#include "rx_base.h"
 
-class rx_hackrf : public QObject
+class rx_hackrf : virtual public rx_base<int8_t>
 {
-    Q_OBJECT
 public:
     explicit rx_hackrf(QObject* parent = nullptr);
-    ~rx_hackrf();
+    virtual ~rx_hackrf();
 
-    std::string error (int err);
-    int get(std::string &_ser_no, std::string &_hw_ver);
-    int init(double _rf_frequency, int _gain_db);
-    dvbt2_demodulator* demodulator;
-
-signals:
-    void execute(int _len_in, complex* _in, float _level_estimate, signal_estimate* signal_);
-    void status(int _err);
-    void radio_frequency(double _rf);
-    void level_gain(int _gain);
-    void stop_demodulator();
-    void finished();
-    void buffered(int nbuffers, int totalbuffers);
-
-public slots:
-    void start();
-    void stop();
-    void set_rf_frequency();
-    void set_gain(bool force=false);
-    void set_gain_db(int gain);
+    std::string error (int err) override;
+    int get(std::string &_ser_no, std::string &_hw_ver) override;
+    void update_gain_frequency_direct() override;
+    const QString dev_name() override
+    {
+        return "HackRF";
+    }
+    const QString thread_name() override
+    {
+        return "rx_hackrf";
+    }
 private:
     void rx_execute(void *ptr, int nsamples);
     static int callback(hackrf_transfer* transfer);
 
 private:
-    QThread* thread;
-    signal_estimate signal{};
-
-    int gain_db;
-    bool gain_changed;
-    double rf_frequency;
-    double ch_frequency;
-    bool frequency_changed;
-
-    float sample_rate;
-    int max_len_out;
-
-    std::vector<complex> buffer_a;
-    std::vector<complex> buffer_b;
-    complex* ptr_buffer;
-    int  blocks = 1;
-    const int len_out_device = 128*1024*4;
-    const int max_blocks = 256;
-    int len_buffer = 0;
-    bool swap_buffer = true;
-    
-    int64_t rf_bandwidth_hz;
-    int64_t sample_rate_hz;
-    clock_t start_wait_frequency_changed;
-    clock_t end_wait_frequency_changed;
-    float frequency_offset = 0.0f;
-    bool change_frequency = false;
-    clock_t start_wait_gain_changed;
-    clock_t end_wait_gain_changed;
-    bool agc = false;
-    bool change_gain = false;
     bool done = true;
-    int gain_offset = 0;
-    
     hackrf_device *_dev;
-    int err;
-    convert_iq<int8_t> conv{};
-
-    int set_gain_internal(int gain);
-    void reset();
+    int hw_init(uint32_t _rf_frequency_hz, int _gain) override;
+    int hw_set_frequency() override;
+    void on_frequency_changed() override;
+    int hw_set_gain() override;
+    void on_gain_changed() override;
+    void update_gain_frequency() override;
+    void hw_stop() override;
+    int hw_start() override;
 };
 
 #endif // RX_HACKRF_H

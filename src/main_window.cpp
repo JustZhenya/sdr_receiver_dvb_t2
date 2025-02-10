@@ -19,21 +19,7 @@
 //------------------------------------------------------------------------------------------------
 main_window::main_window(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::main_window),
-    ptr_airspy(nullptr),
-#ifdef USE_SDRPLAY
-    ptr_sdrplay(nullptr),
-#endif
-#ifdef USE_HACKRF
-    ptr_hackrf(nullptr),
-#endif
-#ifdef USE_MIRI
-    ptr_miri(nullptr),
-#endif
-#ifdef USE_USRP
-    ptr_usrp(nullptr),
-#endif
-    ptr_plutosdr(nullptr)
+    , ui(new Ui::main_window)
 {
     ui->setupUi(this);
 
@@ -146,281 +132,67 @@ void main_window::on_check_box_agc_stateChanged(int arg1)
 #ifdef USE_SDRPLAY
 void main_window::open_sdrplay()
 {
-    int err;
-    char* ser_no = nullptr;
-    unsigned char hw_ver;
-    ptr_sdrplay = new rx_sdrplay;
-    err = ptr_sdrplay->get(ser_no, hw_ver);
-    ui->text_log->insertPlainText("Get SdrPlay:"  " " +
-                                  QString::fromStdString(ptr_sdrplay->error(err)) + "\n");
-    if(err !=0) return;
-
-    ui->label_name->setText("Name : SdrPlay");
-    ui->label_ser_no->setText("Serial No : " + QString::fromUtf8(ser_no));
-    ui->label_hw_ver->setText("Hardware ver : " + QString::number(hw_ver));
-    ui->label_gain->setText("gain reduction(0-85):");
-
-    id_device = id_sdrplay;
-    ui->push_button_start->setEnabled(true);
-}
-//------------------------------------------------------------------------------------------------
-int main_window::start_sdrplay()
-{
-    double rf_fraquency;
-    int gain_db;
-    int err;
-    rf_fraquency = ui->spinBoxRF->text().toDouble();
-    gain_db = ui->spinBoxGain->value();
-    if(ui->check_box_agc->isChecked()) gain_db = -1;
-    err = ptr_sdrplay->init(rf_fraquency, gain_db);
-    ui->text_log->insertPlainText("Init SdrPlay:"  " "  +
-                                  QString::fromStdString(ptr_sdrplay->error(err)) + "\n");
-    if(err !=0) return err;
-
-    thread = new QThread;
-    thread->setObjectName("rx_sdrplay");
-    ptr_sdrplay->moveToThread(thread);
-    connect(thread, SIGNAL(started()), ptr_sdrplay, SLOT(start()));
-    connect(this,SIGNAL(stop_device()),ptr_sdrplay,SLOT(stop()),Qt::DirectConnection);
-    connect(ptr_sdrplay, SIGNAL(finished()), ptr_sdrplay, SLOT(deleteLater()));
-    connect(ptr_sdrplay, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
-    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-    thread->start(QThread::TimeCriticalPriority);
-
-    connect(ptr_sdrplay, &rx_sdrplay::status, this, &main_window::status_sdrplay);
-    connect(ptr_sdrplay, &rx_sdrplay::radio_frequency, this, &main_window::radio_frequency);
-    connect(ptr_sdrplay, &rx_sdrplay::level_gain, this, &main_window::level_gain);
-#if 0
-   connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_sdrplay,SLOT(set_gain_db(int)),Qt::DirectConnection);
-#endif
-    return 0;
-}
-//------------------------------------------------------------------------------------------------
-void main_window::status_sdrplay(int _err)
-{
-    ui->text_log->insertPlainText("Status SdrPlay:"  " "  +
-                                  QString::fromStdString(ptr_sdrplay->error(_err)) + "\n");
+    open_dev<rx_sdrplay>();
 }
 #endif
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::open_airspy()
 {
-    int err;
-    std::string ser_no;
-    std::string hw_ver;
-    ptr_airspy = new rx_airspy;
-    err = ptr_airspy->get(ser_no, hw_ver);
-    ui->text_log->insertPlainText("Get AirSpy:"  " " +
-                                  QString::fromStdString(ptr_airspy->error(err)) + "\n");
-    if(err < 0) return;
-
-    ui->label_name->setText("Name : AirSpy");
-    ui->label_ser_no->setText("Serial No : " + QString::fromStdString(ser_no));
-    ui->label_hw_ver->setText("HW: " + QString::fromStdString(hw_ver));
-    ui->label_gain->setText("gain (0-21):");
-
-    id_device = id_airspy;
-    ui->push_button_start->setEnabled(true);
-
-}
-//------------------------------------------------------------------------------------------------
-int main_window::start_airspy()
-{
-    uint32_t rf_fraquency_hz;
-    int gain;
-    int err;
-    rf_fraquency_hz = static_cast<uint32_t>(ui->spinBoxRF->text().toULong());
-    gain = static_cast<uint8_t>(ui->spinBoxGain->value());
-    if(ui->check_box_agc->isChecked()) gain = -1;
-    err = ptr_airspy->init(rf_fraquency_hz, gain);
-    ui->text_log->insertPlainText("Init AirSpy:"  " "  +
-                                  QString::fromStdString(ptr_airspy->error(err)) + "\n");
-    if(err !=0) return err;
-
-    thread = new QThread;
-    thread->setObjectName("rx_airspy");
-    ptr_airspy->moveToThread(thread);
-    connect(thread, SIGNAL(started()), ptr_airspy, SLOT(start()));
-    connect(this,SIGNAL(stop_device()),ptr_airspy,SLOT(stop()),Qt::DirectConnection);
-    connect(ptr_airspy, SIGNAL(finished()), ptr_airspy, SLOT(deleteLater()));
-    connect(ptr_airspy, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
-    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-    thread->start(QThread::TimeCriticalPriority);
-
-    connect(ptr_airspy, &rx_airspy::status, this, &main_window::status_airspy);
-    connect(ptr_airspy, &rx_airspy::radio_frequency, this, &main_window::radio_frequency);
-    connect(ptr_airspy, &rx_airspy::level_gain, this, &main_window::level_gain);
-#if 0
-   connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_airspy,SLOT(set_gain_db(int)),Qt::DirectConnection);
-#endif
-
-    return 0;
-}
-//------------------------------------------------------------------------------------------------
-void main_window::status_airspy(int _err)
-{
-    ui->text_log->insertPlainText("Status AirSpy:"  " "  +
-                                  QString::fromStdString(ptr_airspy->error(_err)) + "\n");
+    open_dev<rx_airspy>();
 }
 //------------------------------------------------------------------------------------------------
 #ifndef WIN32
 void main_window::open_plutosdr()
 {
-   int err;
-   std::string ser_no;
-   std::string hw_ver;
-   ptr_plutosdr = new rx_plutosdr;
-   err = ptr_plutosdr->get(ser_no, hw_ver);
-   ui->text_log->insertPlainText("Get PlutoSDR:" +
-                                 QString::fromStdString(ptr_plutosdr->error(err)) + "\n");
-   if(err < 0) return;
-
-   ui->label_name->setText("Name : ADALM-PLUTO");
-   ui->label_ser_no->setText("Serial No : " + QString::fromStdString(ser_no));
-   ui->label_hw_ver->setText("HW: " + QString::fromStdString(hw_ver));
-   ui->label_gain->setText("gain (0-73):");
-
-   id_device = id_plutosdr;
-   ui->push_button_start->setEnabled(true);
-
-}
-//------------------------------------------------------------------------------------------------
-int main_window::start_plutosdr()
-{
-   uint64_t rf_fraquency_hz;
-   int gain;
-   int err;
-   rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
-   gain = static_cast<uint8_t>(ui->spinBoxGain->value());
-   if(ui->check_box_agc->isChecked()) gain = -1;
-   err = ptr_plutosdr->init(rf_fraquency_hz, gain);
-   ui->text_log->insertPlainText("Init PlutoSDR:"  " "  +
-                                 QString::fromStdString(ptr_plutosdr->error(err)) + "\n");
-   if(err !=0) return err;
-
-   thread = new QThread;
-   thread->setObjectName("rx_plutosdr");
-   ptr_plutosdr->moveToThread(thread);
-   connect(thread, SIGNAL(started()), ptr_plutosdr, SLOT(start()));
-   connect(this,SIGNAL(stop_device()),ptr_plutosdr,SLOT(stop()),Qt::DirectConnection);
-   connect(ptr_plutosdr, SIGNAL(finished()), ptr_plutosdr, SLOT(deleteLater()));
-   connect(ptr_plutosdr, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
-   connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-   thread->start(QThread::TimeCriticalPriority);
-
-   connect(ptr_plutosdr, &rx_plutosdr::status, this, &main_window::status_plutosdr);
-   connect(ptr_plutosdr, &rx_plutosdr::radio_frequency, this, &main_window::radio_frequency);
-   connect(ptr_plutosdr, &rx_plutosdr::level_gain, this, &main_window::level_gain);
-#if 0
-   connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_plutosdr,SLOT(set_gain_db(int)),Qt::DirectConnection);
-#endif
-
-    return 0;
-}
-//------------------------------------------------------------------------------------------------
-void main_window::status_plutosdr(int _err)
-{
-   ui->text_log->insertPlainText("Status PlutoSDR:"  " "  +
-                                 QString::fromStdString(ptr_plutosdr->error(_err)) + "\n");
-}
-#endif
-//------------------------------------------------------------------------------------------------
-
-//---------------------------------------------------------------------------------------------------------------------------------
-#ifdef USE_HACKRF
-void main_window::open_hackrf()
-{
-    int err;
-    std::string ser_no;
-    std::string hw_ver;
-    if(ptr_hackrf)
-        delete ptr_hackrf;
-    ptr_hackrf = new rx_hackrf;
-    err = ptr_hackrf->get(ser_no, hw_ver);
-    ui->text_log->insertPlainText("Get HackRF:" +
-                                  QString::fromStdString(ptr_hackrf->error(err)) + "\n");
-    if(err < 0) return;
-
-    ui->label_name->setText("Name : HackRF");
-    ui->label_ser_no->setText("Serial No : " + QString::fromStdString(ser_no));
-    ui->label_hw_ver->setText("HW: " + QString::fromStdString(hw_ver));
-    ui->label_gain->setText("gain (0-73):");
-
-    id_device = id_hackrf;
-    ui->push_button_start->setEnabled(true);
-
-}
-//---------------------------------------------------------------------------------------------------------------------------------
-int main_window::start_hackrf()
-{
-    uint64_t rf_fraquency_hz;
-    int gain;
-    int err;
-    rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
-    gain = static_cast<uint8_t>(ui->spinBoxGain->value());
-    if(ui->check_box_agc->isChecked()) gain = -1;
-    err = ptr_hackrf->init(rf_fraquency_hz, gain);
-    ui->text_log->insertPlainText("Init HackRF:"  " "  +
-                                  QString::fromStdString(ptr_hackrf->error(err)) + "\n");
-    if(err !=0) return err;
-
-    thread = new QThread;
-    thread->setObjectName("rx_hackrf");
-    ptr_hackrf->moveToThread(thread);
-    connect(thread, SIGNAL(started()), ptr_hackrf, SLOT(start()));
-    connect(this,SIGNAL(stop_device()),ptr_hackrf,SLOT(stop()),Qt::DirectConnection);
-    connect(ptr_hackrf, SIGNAL(finished()), ptr_hackrf, SLOT(deleteLater()));
-    connect(ptr_hackrf, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
-    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-    connect(thread, SIGNAL(finished()), this, SLOT(finished_hackrf()));
-    thread->start(QThread::TimeCriticalPriority);
-
-    connect(ptr_hackrf, &rx_hackrf::status, this, &main_window::status_hackrf);
-    connect(ptr_hackrf, &rx_hackrf::radio_frequency, this, &main_window::radio_frequency);
-    connect(ptr_hackrf, &rx_hackrf::level_gain, this, &main_window::level_gain);
-    connect(ptr_hackrf, &rx_hackrf::buffered, this, &main_window::update_buffered, Qt::QueuedConnection);
-    connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_hackrf,SLOT(set_gain_db(int)),Qt::DirectConnection);
-
-    return 0;
-}
-//---------------------------------------------------------------------------------------------------------------------------------
-void main_window::status_hackrf(int _err)
-{
-    ui->text_log->insertPlainText("Status HackRF:"  " "  +
-                                  QString::fromStdString(ptr_hackrf->error(_err)) + "\n");
-}
-//---------------------------------------------------------------------------------------------------------------------------------
-void main_window::finished_hackrf()
-{
-    ptr_hackrf = nullptr;
-    thread = nullptr;
+    open_dev<rx_plutosdr>();
 }
 #endif
 #ifdef USE_MIRI
+//---------------------------------------------------------------------------------------------------------------------------------
 void main_window::open_miri()
+{
+    open_dev<rx_miri>();
+}
+#endif
+#ifdef USE_HACKRF
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::open_hackrf()
+{
+    open_dev<rx_hackrf>();
+}
+#endif
+#ifdef USE_USRP
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::open_usrp()
+{
+    open_dev<rx_usrp>();
+}
+#endif
+//---------------------------------------------------------------------------------------------------------------------------------
+template<typename T> void main_window::open_dev()
 {
     int err;
     std::string ser_no;
     std::string hw_ver;
-    if(ptr_miri)
-        delete ptr_miri;
-    ptr_miri = new rx_miri;
-    err = ptr_miri->get(ser_no, hw_ver);
-    ui->text_log->insertPlainText("Get Miri:" +
-                                  QString::fromStdString(ptr_miri->error(err)) + "\n");
+    if(ptr_dev)
+        delete ptr_dev;
+    ptr_dev = new T;
+    err = ptr_dev->get(ser_no, hw_ver);
+    ui->text_log->insertPlainText("Get " + ptr_dev->dev_name() +":" +
+                                  QString::fromStdString(ptr_dev->error(err)) + "\n");
     if(err < 0) return;
 
-    ui->label_name->setText("Name : Miri SDR");
+    ui->label_name->setText("Name : " + ptr_dev->dev_name());
     ui->label_ser_no->setText("Serial No : " + QString::fromStdString(ser_no));
     ui->label_hw_ver->setText("HW: " + QString::fromStdString(hw_ver));
-    ui->label_gain->setText("gain (0-73):");
+    ui->label_gain->setText(QString("gain (%1-%2):").arg(ptr_dev->gain_min()).arg(ptr_dev->gain_max()));
 
     id_device = id_miri;
     ui->push_button_start->setEnabled(true);
 
 }
 //---------------------------------------------------------------------------------------------------------------------------------
-int main_window::start_miri()
+int main_window::start_dev()
 {
     uint64_t rf_fraquency_hz;
     int gain;
@@ -428,201 +200,62 @@ int main_window::start_miri()
     rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
     gain = static_cast<uint8_t>(ui->spinBoxGain->value());
     if(ui->check_box_agc->isChecked()) gain = -1;
-    err = ptr_miri->init(rf_fraquency_hz, gain);
-    ui->text_log->insertPlainText("Init Miri SDR:"  " "  +
-                                  QString::fromStdString(ptr_miri->error(err)) + "\n");
+    err = ptr_dev->init(rf_fraquency_hz, gain);
+    ui->text_log->insertPlainText("Init " + ptr_dev->dev_name() +": "  +
+                                  QString::fromStdString(ptr_dev->error(err)) + "\n");
     if(err !=0) return err;
 
     thread = new QThread;
-    thread->setObjectName("rx_miri");
-    ptr_miri->moveToThread(thread);
-    connect(thread, SIGNAL(started()), ptr_miri, SLOT(start()));
-    connect(this,SIGNAL(stop_device()),ptr_miri,SLOT(stop()),Qt::DirectConnection);
-    connect(ptr_miri, SIGNAL(finished()), ptr_miri, SLOT(deleteLater()));
-    connect(ptr_miri, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
+    thread->setObjectName(ptr_dev->thread_name());
+    ptr_dev->moveToThread(thread);
+    connect(thread, SIGNAL(started()), ptr_dev, SLOT(start()));
+    connect(this,SIGNAL(stop_device()),ptr_dev,SLOT(stop()),Qt::DirectConnection);
+    connect(thread, SIGNAL(finished()), ptr_dev, SLOT(deleteLater()));
+    connect(ptr_dev, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-    connect(thread, SIGNAL(finished()), this, SLOT(finished_miri()));
+    connect(thread, SIGNAL(finished()), this, SLOT(finished_dev()));
     thread->start(QThread::TimeCriticalPriority);
 
-    connect(ptr_miri, &rx_miri::status, this, &main_window::status_miri);
-    connect(ptr_miri, &rx_miri::radio_frequency, this, &main_window::radio_frequency);
-    connect(ptr_miri, &rx_miri::level_gain, this, &main_window::level_gain);
-    connect(ptr_miri, &rx_miri::buffered, this, &main_window::update_buffered, Qt::QueuedConnection);
-    connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_miri,SLOT(set_gain_db(int)),Qt::DirectConnection);
+    connect(ptr_dev, &rx_interface::status, this, &main_window::status_dev);
+    connect(ptr_dev, &rx_interface::radio_frequency, this, &main_window::radio_frequency);
+    connect(ptr_dev, &rx_interface::level_gain, this, &main_window::level_gain);
+    connect(ptr_dev, &rx_interface::buffered, this, &main_window::update_buffered, Qt::QueuedConnection);
+    connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_dev,SLOT(set_gain_db(int)),Qt::DirectConnection);
 
     return 0;
 }
 //---------------------------------------------------------------------------------------------------------------------------------
-void main_window::status_miri(int _err)
+void main_window::status_dev(int _err)
 {
-    ui->text_log->insertPlainText("Status Miri SDR:"  " "  +
-                                  QString::fromStdString(ptr_miri->error(_err)) + "\n");
+    ui->text_log->insertPlainText("Status " + ptr_dev->dev_name() + ": "  +
+                                  QString::fromStdString(ptr_dev->error(_err)) + "\n");
 }
 //---------------------------------------------------------------------------------------------------------------------------------
-void main_window::finished_miri()
+void main_window::finished_dev()
 {
-    ptr_miri = nullptr;
+    ptr_dev = nullptr;
     thread = nullptr;
 }
-#endif
-#ifdef USE_USRP
-void main_window::open_usrp()
-{
-    int err;
-    std::string ser_no;
-    std::string hw_ver;
-    if(ptr_usrp)
-        delete ptr_usrp;
-    ptr_usrp = new rx_usrp;
-    err = ptr_usrp->get(ser_no, hw_ver);
-    ui->text_log->insertPlainText("Get USRP:" +
-                                  QString::fromStdString(ptr_usrp->error(err)) + "\n");
-    if(err < 0) return;
-
-    ui->label_name->setText("Name : USRP SDR");
-    ui->label_ser_no->setText("Serial No : " + QString::fromStdString(ser_no));
-    ui->label_hw_ver->setText("HW: " + QString::fromStdString(hw_ver));
-    ui->label_gain->setText("gain (0-73):");
-
-    id_device = id_usrp;
-    ui->push_button_start->setEnabled(true);
-
-}
-//---------------------------------------------------------------------------------------------------------------------------------
-int main_window::start_usrp()
-{
-    uint64_t rf_fraquency_hz;
-    int gain;
-    int err;
-    rf_fraquency_hz = static_cast<uint64_t>(ui->spinBoxRF->text().toULong());
-    gain = static_cast<uint8_t>(ui->spinBoxGain->value());
-    if(ui->check_box_agc->isChecked()) gain = -1;
-    err = ptr_usrp->init(rf_fraquency_hz, gain);
-    ui->text_log->insertPlainText("Init USRP SDR:"  " "  +
-                                  QString::fromStdString(ptr_usrp->error(err)) + "\n");
-    if(err !=0) return err;
-
-    thread = new QThread;
-    thread->setObjectName("rx_usrp");
-    ptr_usrp->moveToThread(thread);
-    connect(thread, SIGNAL(started()), ptr_usrp, SLOT(start()));
-    connect(this,SIGNAL(stop_device()),ptr_usrp,SLOT(stop()),Qt::DirectConnection);
-    connect(ptr_usrp, SIGNAL(finished()), ptr_usrp, SLOT(deleteLater()));
-    connect(ptr_usrp, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
-    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-    connect(thread, SIGNAL(finished()), this, SLOT(finished_usrp()));
-    thread->start(QThread::TimeCriticalPriority);
-
-    connect(ptr_usrp, &rx_usrp::status, this, &main_window::status_usrp);
-    connect(ptr_usrp, &rx_usrp::radio_frequency, this, &main_window::radio_frequency);
-    connect(ptr_usrp, &rx_usrp::level_gain, this, &main_window::level_gain);
-    connect(ptr_usrp, &rx_usrp::buffered, this, &main_window::update_buffered, Qt::QueuedConnection);
-    connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_usrp,SLOT(set_gain_db(int)),Qt::DirectConnection);
-
-    return 0;
-}
-//---------------------------------------------------------------------------------------------------------------------------------
-void main_window::status_usrp(int _err)
-{
-    ui->text_log->insertPlainText("Status USRP SDR:"  " "  +
-                                  QString::fromStdString(ptr_usrp->error(_err)) + "\n");
-}
-//---------------------------------------------------------------------------------------------------------------------------------
-void main_window::finished_usrp()
-{
-    ptr_usrp = nullptr;
-    thread = nullptr;
-}
-#endif
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::update_buffered(int nbuffers, int totalbuffers)
 {
     ui->label_info_buffered->setText("buffered  :" + QString::number(nbuffers) + "/" + QString::number(totalbuffers));
-    switch (id_device) {
-    case id_sdrplay:
-        break;
-    case id_airspy:
-        break;
-    case id_plutosdr:
-        break;
-    case id_hackrf:
-#ifdef USE_HACKRF
-        ptr_hackrf->set_rf_frequency();
-        ptr_hackrf->set_gain();
-#endif
-        break;
-    case id_miri:
-#ifdef USE_MIRI
-        ptr_miri->set_rf_frequency();
-        ptr_miri->set_gain();
-#endif
-        break;
-    case id_usrp:
-#ifdef USE_USRP
-        ptr_usrp->set_rf_frequency();
-        ptr_usrp->set_gain();
-#endif
-        break;
-    }
+    if(ptr_dev && enable_gain_updates)
+        ptr_dev->update_gain_frequency_direct();
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::on_push_button_start_clicked()
 {
     ui->menu_open->setEnabled(false);
-    switch (id_device) {
-    case id_sdrplay:
-
-#ifdef USE_SDRPLAY
-        if(start_sdrplay() != 0) return;
-
-        dvbt2 = ptr_sdrplay->demodulator;
-#endif
-        break;
-
-    case id_airspy:
-        if(start_airspy() != 0) return;
-
-        dvbt2 = ptr_airspy->demodulator;
-        break;
-#ifndef WIN32
-    case id_plutosdr:
-
-        if(start_plutosdr() != 0) return;
-
-        dvbt2 = ptr_plutosdr->demodulator;
-        break;
-#endif
-    case id_hackrf:
-
-#ifdef USE_HACKRF
-        if(start_hackrf() != 0) return;
-
-        dvbt2 = ptr_hackrf->demodulator;
-#endif
-        break;
-    case id_miri:
-
-#ifdef USE_MIRI
-        if(start_miri() != 0) return;
-
-        dvbt2 = ptr_miri->demodulator;
-#endif
-        break;
-    case id_usrp:
-
-#ifdef USE_USRP
-        if(start_usrp() != 0) return;
-
-        dvbt2 = ptr_usrp->demodulator;
-#endif
-        break;
-    }
+    if(start_dev() != 0) return;
+    dvbt2 = ptr_dev->demodulator;
     for(int i = 1; i < ui->tab_widget->count(); ++i) ui->tab_widget->setTabEnabled(i, true);
     connect_info();
     ui->push_button_start->setEnabled(false);
     ui->spinBoxRF->setEnabled(false);
     ui->check_box_agc->setEnabled(false);
     ui->push_button_stop->setEnabled(true);
+    enable_gain_updates = true;
 }
 //------------------------------------------------------------------------------------------------
 void main_window::connect_info()
@@ -653,6 +286,7 @@ void main_window::bad_signal()
 //------------------------------------------------------------------------------------------------
 void main_window::on_push_button_stop_clicked()
 {
+    enable_gain_updates = false;
     disconnect_signals();
     disconnect_info();
     ui->tab_widget->setCurrentIndex(0);
@@ -691,48 +325,12 @@ void main_window::disconnect_info()
 void main_window::radio_frequency(double _rf)
 {
     ui->label_info_rf->setText("radio frequency (Hz) : " + QString::number(_rf, 'f', 0));
-    switch (id_device) {
-    case id_sdrplay:
-        break;
-    case id_airspy:
-        break;
-    case id_plutosdr:
-        break;
-    case id_hackrf:
-        //ptr_hackrf->set_frequency(_rf);
-        break;
-    case id_miri:
-        break;
-    case id_usrp:
-        break;
-    }
-    
 }
 //------------------------------------------------------------------------------------------------
 void main_window::level_gain(int _gain)
 {
     QString str_gain = "";
-    switch (id_device) {
-    case id_sdrplay:
-        str_gain = "gain reduction :  ";
-        break;
-    case id_airspy:
-        str_gain = "gain :   ";
-        break;
-    case id_plutosdr:
-        str_gain = "gain :   ";
-        break;
-    case id_hackrf:
-        str_gain = "gain :   ";
-        //ptr_hackrf->set_gain();
-        break;
-    case id_miri:
-        str_gain = "gain :   ";
-        break;
-    case id_usrp:
-        str_gain = "gain :   ";
-        break;
-    }
+    str_gain = "gain :   ";
     ui->label_info_gain->setText(str_gain + QString::number(_gain));
 }
 //------------------------------------------------------------------------------------------------
