@@ -105,6 +105,7 @@ private slots:
     void on_radio_button_ts_net_toggled(bool checked);
     void on_radio_button_ts_file_toggled(bool checked);
     void on_line_edit_ts_udp_port_textChanged(const QString &arg1);
+    void on_checkBox_biastee_toggled(bool checked);
 
     void on_check_box_agc_stateChanged(int arg1);
 

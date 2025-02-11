@@ -74,12 +74,21 @@ int rx_miri::hw_init(uint32_t _rf_frequency, int _gain_db)
     sample_rate = 9000000.0f;
     ret = mirisdr_open( &_dev, 0 );
     if(ret != 0) return ret;
+#ifdef HAVE_SET_HW_FALVOUR
+  unsigned int flavour = 2;
+  mirisdr_set_hw_flavour( _dev, mirisdr_hw_flavour_t(flavour));
+#endif
     mirisdr_set_sample_format( _dev, fmt);
     mirisdr_set_sample_rate( _dev, sample_rate );
     mirisdr_set_center_freq( _dev, rf_frequency );
     ret = mirisdr_set_bandwidth( _dev, 12000000 );
     if(ret != 0) return ret;
     return ret;
+}
+//-------------------------------------------------------------------------------------------
+void rx_miri::set_biastee(const bool state)
+{
+    mirisdr_set_bias( _dev, state );
 }
 //-------------------------------------------------------------------------------------------
 int rx_miri::hw_set_frequency()

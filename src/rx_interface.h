@@ -28,6 +28,7 @@ public:
     virtual const QString dev_name() = 0;
     virtual int gain_min() = 0;
     virtual int gain_max() = 0;
+    virtual void set_biastee(const bool state) = 0;
 
     dvbt2_demodulator *demodulator = nullptr;
 signals:

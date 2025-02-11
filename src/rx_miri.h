@@ -41,6 +41,7 @@ public:
     {
         return "rx_miri";
     }
+    void set_biastee(const bool state) override;
 
 private:
     void rx_execute(void *ptr, int nsamples);

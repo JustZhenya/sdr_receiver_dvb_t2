@@ -18,6 +18,7 @@ public:
     void stop() override;
     int gain_min() override;
     int gain_max() override;
+    void set_biastee(const bool state) override;
 
 protected:
     int GAIN_MAX = 0;

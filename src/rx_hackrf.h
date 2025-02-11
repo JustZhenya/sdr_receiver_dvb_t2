@@ -40,6 +40,7 @@ public:
     {
         return "rx_hackrf";
     }
+    void set_biastee(const bool state) override;
 private:
     void rx_execute(void *ptr, int nsamples);
     static int callback(hackrf_transfer* transfer);

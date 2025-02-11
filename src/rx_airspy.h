@@ -25,6 +25,7 @@ public:
     {
         return "rx_airspy";
     }
+    void set_biastee(const bool state) override;
 
 private:
     uint64_t serials[10];

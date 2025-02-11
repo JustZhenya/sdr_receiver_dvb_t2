@@ -43,6 +43,11 @@ template<typename T>int rx_base<T>::init(uint32_t _rf_frequency_hz, int _gain)
     return ret;
 }
 //-------------------------------------------------------------------------------------------
+template<typename T>void rx_base<T>::set_biastee(const bool state)
+{
+    (void) state;
+}
+//-------------------------------------------------------------------------------------------
 template<typename T>void rx_base<T>::reset()
 {
     signal.reset = false;

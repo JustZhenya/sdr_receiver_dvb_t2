@@ -204,6 +204,7 @@ int main_window::start_dev()
     ui->text_log->insertPlainText("Init " + ptr_dev->dev_name() +": "  +
                                   QString::fromStdString(ptr_dev->error(err)) + "\n");
     if(err !=0) return err;
+    ptr_dev->set_biastee(ui->checkBox_biastee->isChecked());
 
     thread = new QThread;
     thread->setObjectName(ptr_dev->thread_name());
@@ -566,5 +567,10 @@ void main_window::on_push_button_ts_open_file_clicked()
     else ui->radio_button_ts_net->setChecked(false);
 }
 //------------------------------------------------------------------------------------------------
-
+void main_window::on_checkBox_biastee_toggled(bool checked)
+{
+    if(ptr_dev)
+        ptr_dev->set_biastee(checked);
+}
+//------------------------------------------------------------------------------------------------
 

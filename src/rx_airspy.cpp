@@ -104,6 +104,11 @@ int rx_airspy::hw_init(uint32_t _rf_frequency_hz, int _gain)
     return err;
 }
 //-------------------------------------------------------------------------------------------
+void rx_airspy::set_biastee(const bool state)
+{
+    airspy_set_rf_bias(device, state);
+}
+//-------------------------------------------------------------------------------------------
 int rx_airspy::hw_start()
 {
     return airspy_start_rx(device, rx_callback, this);
@@ -155,6 +160,7 @@ void rx_airspy::rx_execute(int16_t* _ptr_rx_buffer, int _len_out_device)
 //-------------------------------------------------------------------------------------------
 void rx_airspy::hw_stop()
 {
+    airspy_set_rf_bias(device, 0);
     airspy_close(device);
 }
 //-------------------------------------------------------------------------------------------
