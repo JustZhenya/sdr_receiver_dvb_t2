@@ -107,12 +107,17 @@ template<typename T>void rx_base<T>::set_gain()
         }
     }
     if(agc && signal.change_gain) {
-        signal.change_gain = false;
 
+        const auto old_gain = gain;
         gain += signal.gain_offset;
         if(gain > GAIN_MAX) {
             gain = GAIN_MIN;
         }
+        if(gain < GAIN_MIN) {
+            gain = GAIN_MAX;
+        }
+        if(old_gain == gain)
+            return;
         int err =  hw_set_gain();
         if(err != 0) {
             emit status(err);
