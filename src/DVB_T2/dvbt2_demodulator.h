@@ -71,7 +71,11 @@ template<typename T> struct convert_iq
         int j = 0;
         for(int i = 0; i < _len_in; ++i) {
             j = (i + idx_in) * convert_input;
-            complex tmp(_i_in[j] * short_to_float, _q_in[j] * short_to_float);
+            complex tmp;
+            if(std::is_same<T, float>())
+                tmp = complex(_i_in[j], _q_in[j]);
+            else
+                tmp = complex(_i_in[j] * short_to_float, _q_in[j] * short_to_float);
             //___DC offset remove____________
             tmp -= exp_avg_dc(tmp);
             // remove spurs if any
