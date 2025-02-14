@@ -55,6 +55,10 @@ main_window::main_window(QWidget *parent)
     ui->menu_open->addAction(action_usrp);
     connect(action_usrp, SIGNAL(triggered()), this, SLOT(open_usrp()));
 #endif
+    QAction * action_raw = new QAction("RAW IQ file", this);
+    ui->menu_open->addAction(action_raw);
+    connect(action_raw, SIGNAL(triggered()), this, SLOT(open_raw()));
+
     connect(ui->action_exit, SIGNAL(triggered()), this, SLOT(close()));
 
     ui->tab_widget->setCurrentIndex(0);
@@ -168,6 +172,11 @@ void main_window::open_usrp()
     open_dev<rx_usrp>();
 }
 #endif
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::open_raw()
+{
+    open_dev<rx_raw>();
+}
 //---------------------------------------------------------------------------------------------------------------------------------
 template<typename T> void main_window::open_dev()
 {

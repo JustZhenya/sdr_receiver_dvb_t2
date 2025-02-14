@@ -36,6 +36,7 @@
 #ifdef USE_USRP
 #include "rx_usrp.h"
 #endif
+#include "rx_raw.h"
 #include "plot.h"
 #include "DVB_T2/dvbt2_demodulator.h"
 
@@ -80,6 +81,7 @@ private slots:
 #ifdef USE_USRP
     void open_usrp();
 #endif
+    void open_raw();
     void status_dev(int _err);
     void finished_dev();
 

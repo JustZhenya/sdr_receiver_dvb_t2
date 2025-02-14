@@ -73,6 +73,7 @@ SOURCES += \
     main_window.cpp \
     plot.cpp \
     qcustomplot.cpp \
+    rx_raw.cpp \
     rx_airspy.cpp
 
 equals(hackrf,1): SOURCES += rx_hackrf.cpp
@@ -130,6 +131,7 @@ HEADERS += \
     rx_interface.h \
     rx_base.h \
     rx_base.cpp \
+    rx_raw.h \
     rx_airspy.h
 
 equals(hackrf,1): HEADERS += rx_hackrf.h
