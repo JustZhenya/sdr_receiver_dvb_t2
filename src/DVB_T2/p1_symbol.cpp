@@ -103,7 +103,7 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
                 reset_buffer();
             }
 
-            if(correlation < max_correlation * 0.1f) {
+            if(correlation < max_correlation * 0.1f && (idx_buffer >= P1_B_PART || !p1_decoded)) {
 
                 p1_detect = true;
                 _idx_buffer_sym = idx_buffer;
