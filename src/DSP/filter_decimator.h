@@ -95,7 +95,6 @@ public:
                 ++d;
                 if(d == DECIMATION_STEP){
                     d = 0;
-                    sum = _mm256_setzero_ps();
                     // load inputs into register (unaligned)
                     v0 = _mm256_loadu_ps(ptr_buffer);
                     v1 = _mm256_loadu_ps(ptr_buffer + 8);
@@ -109,8 +108,7 @@ public:
                     // parallel addition
                     sum0 = _mm256_add_ps(m0, m1);
                     sum1 = _mm256_add_ps(m2, m3);
-                    sumt = _mm256_add_ps(sum0, sum1);
-                    sum = _mm256_add_ps(sum, sumt);
+                    sum = _mm256_add_ps(sum0, sum1);
                     _mm256_store_ps(st, sum);
                     float real_out = st[0] + st[2] + st[4] + st[6];
                     float imag_out = st[1] + st[3] + st[5] + st[7];
