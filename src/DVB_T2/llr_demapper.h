@@ -63,6 +63,8 @@ private:
     bool swap_buffer = true;
     int blocks{0};
     int nqueued_frames{0};
+    float snr_f{0.f};
+    constexpr static float SNR_ALFA{0.1f};
     constexpr static int nqueued_max{64};
     constexpr static int alignment = 64;
     int8_t* out{nullptr};

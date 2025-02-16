@@ -187,7 +187,8 @@ void llr_demapper::qpsk(int _plp_id, l1_postsignalling &_l1_post, int _len_in, c
         sum_e += std::norm(e);
     }
     snr = 10.0f * std::log10(sum_s / sum_e);
-    emit signal_noise_ratio(snr);
+    snr_f += (snr - snr_f) * SNR_ALFA;
+    emit signal_noise_ratio(snr_f);
     precision = 8.0f * NORM_FACTOR_QPSK * sum_s / sum_e;
     //soft demap
     for(int i = 0; i < len_in; ++i) {
@@ -267,7 +268,8 @@ void llr_demapper::qam16(int _plp_id, l1_postsignalling &_l1_post, int _len_in, 
         sum_e += std::norm(e);
     }
     snr = 20.0f * std::log10(sum_s / sum_e);
-    emit signal_noise_ratio(snr);
+    snr_f += (snr - snr_f) * SNR_ALFA;
+    emit signal_noise_ratio(snr_f);
     //soft demap
     int* address;
     int* address_begin = nullptr;
@@ -421,7 +423,8 @@ void llr_demapper::qam64(int _plp_id, l1_postsignalling &_l1_post, int _len_in, 
         sum_e += std::norm(e);
     }
     snr = 20.0f * std::log10(sum_s / sum_e);
-    emit signal_noise_ratio(snr);
+    snr_f += (snr - snr_f) * SNR_ALFA;
+    emit signal_noise_ratio(snr_f);
     //soft demap
     int* address;
     int* address_begin = nullptr;
@@ -636,7 +639,8 @@ void llr_demapper::qam256(int _plp_id, l1_postsignalling &_l1_post, int _len_in,
         sum_e += std::norm(e);
     }
     snr = 20.0f * std::log10(sum_s / sum_e);
-    emit signal_noise_ratio(snr);
+    snr_f += (snr - snr_f) * SNR_ALFA;
+    emit signal_noise_ratio(snr_f);
     //soft demap
     int* address;
     int* address_begin = nullptr;
