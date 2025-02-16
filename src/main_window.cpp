@@ -89,6 +89,12 @@ main_window::main_window(QWidget *parent)
     connect(button_group_p2_symbol, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked),
             this, &main_window::set_show_p2_symbol);
 //    connect(button_group_p2_symbol, &QButtonGroup::idClicked, this, &main_window::set_show_p2_symbol);
+    std::vector<const char *> fir_names{};
+    filter_decimator::get_filter_names(fir_names);
+    for(auto & it: fir_names)
+        ui->comboBoxFIR->addItem(it);
+    ui->comboBoxFIR->setCurrentIndex(0);
+
 }
 //------------------------------------------------------------------------------------------------
 main_window::~main_window()
@@ -214,6 +220,7 @@ int main_window::start_dev()
                                   QString::fromStdString(ptr_dev->error(err)) + "\n");
     if(err !=0) return err;
     ptr_dev->set_biastee(ui->checkBox_biastee->isChecked());
+    ptr_dev->demodulator->set_fir(ui->comboBoxFIR->currentIndex());
 
     thread = new QThread;
     thread->setObjectName(ptr_dev->thread_name());
@@ -231,6 +238,7 @@ int main_window::start_dev()
     connect(ptr_dev, &rx_interface::level_gain, this, &main_window::level_gain);
     connect(ptr_dev, &rx_interface::buffered, this, &main_window::update_buffered, Qt::QueuedConnection);
     connect(ui->spinBoxGain,SIGNAL(valueChanged(int)),ptr_dev,SLOT(set_gain_db(int)),Qt::DirectConnection);
+    connect(ui->comboBoxFIR,SIGNAL(currentIndexChanged(int)),ptr_dev->demodulator,SLOT(set_fir(int)));
 
     return 0;
 }
@@ -582,4 +590,3 @@ void main_window::on_checkBox_biastee_toggled(bool checked)
         ptr_dev->set_biastee(checked);
 }
 //------------------------------------------------------------------------------------------------
-

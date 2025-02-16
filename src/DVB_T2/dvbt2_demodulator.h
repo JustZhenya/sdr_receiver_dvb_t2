@@ -241,6 +241,7 @@ signals:
 public slots:
     void execute(int _len_in, complex* _q_in, float _level_estimate, signal_estimate* signal_);
     void stop();
+    void set_fir(int idx);
 
 private:
     QThread* thread = nullptr;
