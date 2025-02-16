@@ -130,7 +130,8 @@ int rx_hackrf::hw_init(uint32_t _rf_frequency, int _gain_db)
 //-------------------------------------------------------------------------------------------
 void rx_hackrf::set_biastee(const bool state)
 {
-    hackrf_set_antenna_enable(_dev, state);
+    if(_dev)
+        hackrf_set_antenna_enable(_dev, state);
 }
 //-------------------------------------------------------------------------------------------
 int rx_hackrf::hw_set_frequency()
@@ -239,6 +240,7 @@ void rx_hackrf::hw_stop()
     hackrf_set_antenna_enable(_dev, 0);
     hackrf_stop_rx(_dev);
     hackrf_close(_dev);
+    _dev = nullptr;
     fprintf(stderr, "hackrf stop rx\n");
 }
 //-------------------------------------------------------------------------------------------

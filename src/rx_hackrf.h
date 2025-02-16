@@ -47,7 +47,7 @@ private:
 
 private:
     bool done = true;
-    hackrf_device *_dev;
+    hackrf_device *_dev{nullptr};
     int hw_init(uint32_t _rf_frequency_hz, int _gain) override;
     int hw_set_frequency() override;
     void on_frequency_changed() override;
