@@ -152,6 +152,8 @@ template<typename T>void rx_base<T>::update_gain_frequency()
 //-------------------------------------------------------------------------------------------
 template<typename T>void rx_base<T>::rx_execute(int nsamples, float level_detect)
 {
+    if(nsamples == 0)
+        return;
     len_buffer += nsamples;
     ptr_buffer += nsamples;
 
