@@ -24,7 +24,7 @@ rx_miri::rx_miri(QObject *parent) : rx_base(parent)
     GAIN_MAX = 104;
     GAIN_MIN = 0;
     blocking_start = true;
-    conv.init(2, 1.0f / (1 << 15), 0.03f, 0.015f);
+    conv.init(2, 1.0f / (1 << 15), 0.04f, 0.015f);
 
 }
 //-------------------------------------------------------------------------------------------
