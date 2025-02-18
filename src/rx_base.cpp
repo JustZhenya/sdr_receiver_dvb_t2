@@ -116,6 +116,7 @@ template<typename T>void rx_base<T>::set_gain()
         if(gain < GAIN_MIN) {
             gain = GAIN_MAX;
         }
+        signal.gain_offset = 0;
         if(old_gain == gain)
             return;
         int err =  hw_set_gain();
