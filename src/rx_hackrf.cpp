@@ -24,7 +24,7 @@ rx_hackrf::rx_hackrf(QObject *parent) : rx_base(parent)
     GAIN_MAX = 100;
     GAIN_MIN = 0;
     blocking_start = false;
-    conv.init(2, 1.0f / (1 << 7), 0.03f, 0.01f);
+    conv.init(2, 1.0f / (1 << 7), 0.04f, 0.015f);
     hackrf_init(); /* call only once before the first open */
     fprintf(stderr,"rx_hackrf::rx_hackrf\n");
 
