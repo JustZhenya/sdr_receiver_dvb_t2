@@ -51,6 +51,7 @@ protected:
     bool swap_buffer = true;
 
     void reset();
+    void fail();
     void set_rf_frequency();
     void set_gain();
     void set_gain_db(int _gain) override;

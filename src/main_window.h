@@ -84,6 +84,7 @@ private slots:
     void open_raw();
     void status_dev(int _err);
     void finished_dev();
+    void failed_dev();
 
     void update_buffered(int nbuffers, int totalbuffers);
 

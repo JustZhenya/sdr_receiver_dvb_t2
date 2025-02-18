@@ -48,7 +48,7 @@ std::string rx_usrp::error (int err)
 //----------------------------------------------------------------------------------------------------------------------------
 int rx_usrp::get(std::string &_ser_no, std::string &_hw_ver)
 {
-
+  (void) _hw_ver;
   static std::vector<std::string> devices;
   static std::vector<unsigned char> hw_ver;
   std::string label;
@@ -77,6 +77,8 @@ int rx_usrp::get(std::string &_ser_no, std::string &_hw_ver)
 //----------------------------------------------------------------------------------------------------------------------------
 int rx_usrp::hw_init(uint32_t _rf_frequency, int _gain_db)
 {
+    (void) _rf_frequency;
+    (void) _gain_db;
     int ret = 0;
     sample_rate = 9000000.0f;
     uhd::device_addr_t device_addr{"uhd,num_recv_frames=128"};
@@ -117,8 +119,6 @@ void rx_usrp::on_gain_changed()
 //----------------------------------------------------------------------------------------------------------------------------
 void rx_usrp::update_gain_frequency_direct()
 {
-    if(!this)
-        return;
     if(!_dev)
         return;
     // coarse frequency setting
@@ -145,40 +145,62 @@ int rx_usrp::hw_start()
 {
     fprintf(stderr,"rx_usrp::hw_start\n");
     uhd::stream_args_t stream_args("sc16","sc16");
-    in_buf.resize(len_out_device);
-    if (! _rx_stream)
-    {
-        _rx_stream = _dev->get_rx_stream(stream_args);
-        _samps_per_packet = _rx_stream->get_max_num_samps();
-    }
-    const size_t bpi = uhd::convert::get_bytes_per_item(stream_args.cpu_format);
-    // setup a stream command that starts streaming slightly in the future
-    static const double reasonable_delay = 0.1; // order of magnitude over RTT
-    uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
-    stream_cmd.stream_now = true;
-    stream_cmd.time_spec = _dev->get_time_now() + uhd::time_spec_t(reasonable_delay);
-    _rx_stream->issue_stream_cmd(stream_cmd);
-    const uhd::tune_result_t res = _dev->set_rx_freq(uhd::tune_request_t(rf_frequency), chan);
-    while(done)
-    {
-        size_t num_samps = _rx_stream->recv(&in_buf[0], len_out_device / 2, _metadata, _recv_timeout, _recv_one_packet);
-        rx_execute(&in_buf[0], num_samps);
-    }
-    const size_t nbytes = 4096;
-    while (true)
-    {
-        _rx_stream->recv(&in_buf[0], nbytes / bpi, _metadata, 0.0);
+    int ret = 0;
+    try{
+        in_buf.resize(len_out_device);
+        if (! _rx_stream)
+        {
+            _rx_stream = _dev->get_rx_stream(stream_args);
+            _samps_per_packet = _rx_stream->get_max_num_samps();
+        }
+        const size_t bpi = uhd::convert::get_bytes_per_item(stream_args.cpu_format);
+        // setup a stream command that starts streaming slightly in the future
+        static const double reasonable_delay = 0.1; // order of magnitude over RTT
+        uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+        stream_cmd.stream_now = true;
+        stream_cmd.time_spec = _dev->get_time_now() + uhd::time_spec_t(reasonable_delay);
+        _rx_stream->issue_stream_cmd(stream_cmd);
+        _dev->set_rx_freq(uhd::tune_request_t(rf_frequency), chan);
+        while(done)
+        {
+            size_t num_samps = _rx_stream->recv(&in_buf[0], len_out_device / 2, _metadata, _recv_timeout, _recv_one_packet);
+            rx_execute(&in_buf[0], num_samps);
+        }
+        const size_t nbytes = 4096;
+        while (true)
+        {
+            _rx_stream->recv(&in_buf[0], nbytes / bpi, _metadata, 0.0);
 
-        if (_metadata.error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT)
-            break;
+            if (_metadata.error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT)
+                break;
+        }
+    }catch(const std::exception &ex)
+    {
+        if(done)
+            ret = -1;
+    }
+    if(ret < 0)
+    {
+        try{
+            _rx_stream.reset();
+        }catch(const std::exception &ex)
+        {
+        }
+        // This does not work as libuhd throws and exception from the exception handler
+        try{
+            _dev.reset();
+        }catch(const std::exception &ex)
+        {
+        }
     }
     fprintf(stderr,"rx_usrp::hw_start exit\n");
-    return 0;
+    return ret;
 }
 //-------------------------------------------------------------------------------------------
 void rx_usrp::hw_stop()
 {
-    _rx_stream->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
+    if(_rx_stream)
+        _rx_stream->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
     done = false;
     fprintf(stderr,"rx_usrp::hw_stop\n");
 }

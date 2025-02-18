@@ -229,6 +229,7 @@ int main_window::start_dev()
     connect(this,SIGNAL(stop_device()),ptr_dev,SLOT(stop()),Qt::DirectConnection);
     connect(thread, SIGNAL(finished()), ptr_dev, SLOT(deleteLater()));
     connect(ptr_dev, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
+    connect(ptr_dev, SIGNAL(failed()), this, SLOT(failed_dev()));
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
     connect(thread, SIGNAL(finished()), this, SLOT(finished_dev()));
     thread->start(QThread::TimeCriticalPriority);
@@ -253,6 +254,32 @@ void main_window::finished_dev()
 {
     ptr_dev = nullptr;
     thread = nullptr;
+    dvbt2 = nullptr;
+    std::cerr<<"main_window::finished_dev()\n";
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::failed_dev()
+{
+    std::cerr<<"main_window::failed_dev()\n";
+    dvbt2 = nullptr;
+    enable_gain_updates = false;
+//    disconnect_signals();
+//    disconnect_info();
+    ui->tab_widget->setCurrentIndex(0);
+    for(int i = 1; i < ui->tab_widget->count(); ++i) ui->tab_widget->setTabEnabled(i, false);
+    ui->push_button_start->setEnabled(false);
+    ui->push_button_stop->setEnabled(false);
+    ui->push_button_ts_open_file->setEnabled(false);
+    ui->push_button_ts_apply->setEnabled(false);
+    ui->label_name->setText("Name :");
+    ui->label_ser_no->setText("Serial No :");
+    ui->label_hw_ver->setText("Hardware ver :");
+    ui->label_info_rf->setText("radio frequency (Hz) : ");
+    ui->label_info_gain->setText("gain reducton (dB) : ");
+    ui->menu_open->setEnabled(true);
+    ui->spinBoxRF->setEnabled(true);
+    ui->check_box_agc->setEnabled(true);
+    ui->text_log->insertPlainText("Streaming failed. Device disconnected?\n");
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::update_buffered(int nbuffers, int totalbuffers)
@@ -416,6 +443,8 @@ void main_window::on_tab_widget_currentChanged(int index)
 //------------------------------------------------------------------------------------------------
 void main_window::disconnect_signals()
 {
+    if(!dvbt2)
+        return;
     dvbt2->p1_demodulator.enable_display(false);
     dvbt2->fc_demod.enable_display(false);
     dvbt2->data_demodulator.enable_display(false);

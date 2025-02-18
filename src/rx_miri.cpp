@@ -158,7 +158,8 @@ int rx_miri::hw_start()
     int err = 0;
     err = mirisdr_reset_buffer(_dev);
     err = mirisdr_read_async( _dev, callback, (void *)this, 64, len_out_device );
-    mirisdr_set_bias( _dev, 0 );
+    if(err == 0)
+        mirisdr_set_bias( _dev, 0 );
     mirisdr_close(_dev);
     len_buffer = 0;
     fprintf(stderr, "mirisdr start rx %d\n", err);

@@ -133,16 +133,17 @@ void rx_sdrplay::on_gain_changed()
 int rx_sdrplay::rx_start()
 {
     unsigned int first_sample_num;
+    mir_sdr_ErrT err = mir_sdr_Success;
     int gr_changed = 0;
     int rf_changed = 0;
     int fs_changed = 0;
     float level_detect=std::numeric_limits<float>::max();
 
-    while(done) {
+    while(done && (err == mir_sdr_Success)) {
 
         for(int n = 0; n < blocks; ++n) {
 
-            mir_sdr_ErrT err = mir_sdr_ReadPacket(&i_buffer[0], &q_buffer[0], &first_sample_num,
+            err = mir_sdr_ReadPacket(&i_buffer[0], &q_buffer[0], &first_sample_num,
                                      &gr_changed, &rf_changed, &fs_changed);
             if(err != 0) {
                 emit status(err);
@@ -151,10 +152,9 @@ int rx_sdrplay::rx_start()
             rx_base::rx_execute(len_out_device, level_detect);
         }
     }
-
     mir_sdr_Uninit();
     mir_sdr_ReleaseDeviceIdx();
-    return 0;
+    return (err == mir_sdr_Success) ? 0 : -1;
 }
 //-------------------------------------------------------------------------------------------
 void rx_sdrplay::rx_stop()

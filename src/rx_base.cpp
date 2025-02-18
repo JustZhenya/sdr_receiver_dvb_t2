@@ -198,6 +198,11 @@ template<typename T>void rx_base<T>::rx_execute(int nsamples, float level_detect
     }
 }
 //-------------------------------------------------------------------------------------------
+template<typename T>void rx_base<T>::fail()
+{
+    emit failed();
+}
+//-------------------------------------------------------------------------------------------
 template<typename T>void rx_base<T>::start()
 {
     reset();
@@ -211,6 +216,7 @@ template<typename T>void rx_base<T>::start()
             thread->wait(1000);
         }
         emit finished();
+        if(err < 0) emit failed();
     }
 }
 //-------------------------------------------------------------------------------------------

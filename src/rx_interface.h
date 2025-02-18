@@ -39,6 +39,7 @@ signals:
     void stop_demodulator();
     void finished();
     void buffered(int nbuffers, int totalbuffers);
+    void failed();
 
 public slots:
     virtual void start() = 0;
