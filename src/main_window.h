@@ -16,26 +16,33 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-//#define USE_SDRPLAY
 
 #include "rx_interface.h"
 
 #ifdef USE_SDRPLAY
 #include "rx_sdrplay.h"
 #endif
+
+#ifdef USE_AIRSPY
 #include "rx_airspy.h"
-#ifndef WIN32
+#endif
+
+#if defined (USE_PLUTOSDR) and !defined (WIN32)
 #include "rx_plutosdr.h"
 #endif
+
 #ifdef USE_HACKRF
 #include "rx_hackrf.h"
 #endif
+
 #ifdef USE_MIRI
 #include "rx_miri.h"
 #endif
+
 #ifdef USE_USRP
 #include "rx_usrp.h"
 #endif
+
 #include "rx_raw.h"
 #include "plot.h"
 #include "DVB_T2/dvbt2_demodulator.h"
@@ -68,19 +75,27 @@ private slots:
 #ifdef USE_SDRPLAY
     void open_sdrplay();
 #endif
+
+#ifdef USE_AIRSPY
     void open_airspy();
-#ifndef WIN32
+#endif
+
+#if defined (USE_PLUTOSDR) and !defined (WIN32)
     void open_plutosdr();
 #endif
+
 #ifdef USE_HACKRF
     void open_hackrf();
 #endif
+
 #ifdef USE_MIRI
     void open_miri();
 #endif
+
 #ifdef USE_USRP
     void open_usrp();
 #endif
+
     void open_raw();
     void status_dev(int _err);
     void finished_dev();

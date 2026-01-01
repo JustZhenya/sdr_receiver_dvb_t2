@@ -12,8 +12,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#ifdef USE_SDRPLAY
-
 #include "rx_sdrplay.h"
 #include "rx_base.cpp"
 
@@ -162,4 +160,3 @@ void rx_sdrplay::rx_stop()
     done = false;
 }
 //-------------------------------------------------------------------------------------------
-#endif //USE_SDRPLAY

@@ -4,10 +4,9 @@
 #include <QObject>
 #include <QTimer>
 #include <string>
-#include <vector>
 
 #include "rx_base.h"
-#include "libairspy/src/airspy.h"
+#include <airspy.h>
 
 class rx_airspy : virtual public rx_base<int16_t>
 {

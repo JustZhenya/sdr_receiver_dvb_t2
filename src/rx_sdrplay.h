@@ -15,8 +15,6 @@
 #ifndef RX_SDRPLAY_H
 #define RX_SDRPLAY_H
 
-#ifdef USE_SDRPLAY
-
 #include <QObject>
 #include <QTime>
 #include <QApplication>
@@ -59,7 +57,5 @@ private:
     void hw_stop() override;
     int hw_start() override;
 };
-
-#endif // USE_SDRPLAY
 
 #endif // RX_SDRPLAY_H

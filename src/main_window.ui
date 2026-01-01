@@ -77,7 +77,7 @@
            <item row="0" column="1">
             <spacer name="horizontalSpacer">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -93,7 +93,7 @@
               <string>Serial No : </string>
              </property>
              <property name="textFormat">
-              <enum>Qt::PlainText</enum>
+              <enum>Qt::TextFormat::PlainText</enum>
              </property>
              <property name="wordWrap">
               <bool>true</bool>
@@ -106,7 +106,7 @@
               <string>Hardware ver:</string>
              </property>
              <property name="textFormat">
-              <enum>Qt::PlainText</enum>
+              <enum>Qt::TextFormat::PlainText</enum>
              </property>
             </widget>
            </item>
@@ -135,7 +135,7 @@
            <item row="8" column="0">
             <spacer name="verticalSpacer">
              <property name="orientation">
-              <enum>Qt::Vertical</enum>
+              <enum>Qt::Orientation::Vertical</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -191,7 +191,7 @@
            <item row="13" column="3">
             <spacer name="horizontalSpacer_2">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -211,7 +211,7 @@
            <item row="13" column="4">
             <spacer name="horizontalSpacer_3">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -292,7 +292,7 @@
            </size>
           </property>
           <property name="sizeAdjustPolicy">
-           <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustIgnored</enum>
           </property>
           <property name="readOnly">
            <bool>true</bool>
@@ -350,7 +350,7 @@
            <item row="6" column="5">
             <spacer name="verticalSpacer_3">
              <property name="orientation">
-              <enum>Qt::Vertical</enum>
+              <enum>Qt::Orientation::Vertical</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -382,7 +382,6 @@
              </property>
              <property name="font">
               <font>
-               <weight>50</weight>
                <italic>false</italic>
                <bold>false</bold>
               </font>
@@ -417,7 +416,6 @@
              </property>
              <property name="font">
               <font>
-               <weight>50</weight>
                <italic>false</italic>
                <bold>false</bold>
               </font>
@@ -436,7 +434,7 @@
            <item row="1" column="4">
             <spacer name="horizontalSpacer_6">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -462,7 +460,7 @@
               <string>Modulation : </string>
              </property>
              <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
              </property>
             </widget>
            </item>
@@ -488,7 +486,6 @@
              </property>
              <property name="font">
               <font>
-               <weight>50</weight>
                <italic>false</italic>
                <bold>false</bold>
               </font>
@@ -596,7 +593,7 @@
            <item row="1" column="2">
             <spacer name="horizontalSpacer_4">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -670,7 +667,7 @@
            </sizepolicy>
           </property>
           <property name="sizeAdjustPolicy">
-           <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustIgnored</enum>
           </property>
           <property name="readOnly">
            <bool>true</bool>
@@ -784,10 +781,10 @@
            <item row="0" column="2">
             <spacer name="horizontalSpacer_5">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
              <property name="sizeType">
-              <enum>QSizePolicy::Expanding</enum>
+              <enum>QSizePolicy::Policy::Expanding</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -899,7 +896,7 @@
            <item row="1" column="0">
             <spacer name="verticalSpacer_5">
              <property name="orientation">
-              <enum>Qt::Vertical</enum>
+              <enum>Qt::Orientation::Vertical</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -957,7 +954,7 @@
      <x>0</x>
      <y>0</y>
      <width>1228</width>
-     <height>25</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_file">
@@ -969,7 +966,13 @@
       <string>Open</string>
      </property>
      <addaction name="action_airspy"/>
+     <addaction name="action_hackrf"/>
+     <addaction name="action_miri"/>
      <addaction name="action_plutosdr"/>
+     <addaction name="action_sdrplay"/>
+     <addaction name="action_usrp"/>
+     <addaction name="separator"/>
+     <addaction name="action_rawiq"/>
     </widget>
     <addaction name="menu_open"/>
     <addaction name="action_exit"/>
@@ -983,6 +986,9 @@
    </property>
   </action>
   <action name="action_airspy">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>AirSpy</string>
    </property>
@@ -991,8 +997,48 @@
    <property name="checkable">
     <bool>false</bool>
    </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>PlutoSDR</string>
+   </property>
+  </action>
+  <action name="action_hackrf">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>HackRF</string>
+   </property>
+  </action>
+  <action name="action_miri">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>MiriSDR</string>
+   </property>
+  </action>
+  <action name="action_sdrplay">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>SDRPlay</string>
+   </property>
+  </action>
+  <action name="action_usrp">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>USRP SDR</string>
+   </property>
+  </action>
+  <action name="action_rawiq">
+   <property name="text">
+    <string>RAW IQ</string>
    </property>
   </action>
  </widget>

@@ -27,38 +27,36 @@ main_window::main_window(QWidget *parent)
     qRegisterMetaType<idx_plp_simd_t>();
     qRegisterMetaType<bch_decoder::in_t>();
 #ifdef USE_SDRPLAY
+    ui->action_sdrplay->setEnabled(true);
     connect(ui->action_sdrplay, SIGNAL(triggered()), this, SLOT(open_sdrplay()));
-    QAction * action_sdrplay = new QAction("SDRPlay", this);
-    ui->menu_open->addAction(action_sdrplay);
-    connect(action_sdrplay, SIGNAL(triggered()), this, SLOT(open_sdrplay()));
 #endif
-    connect(ui->action_airspy, SIGNAL(triggered()), this, SLOT(open_airspy()));
-    ui->action_plutosdr->setVisible(false);
-    ui->action_plutosdr->setEnabled(false);
-#ifndef WIN32
-    ui->action_plutosdr->setVisible(true);
-    ui->action_plutosdr->setEnabled(true);
-    connect(ui->action_plutosdr, SIGNAL(triggered()), this, SLOT(open_plutosdr()));
-#endif
-#ifdef USE_HACKRF
-    QAction * action_hackrf = new QAction("HackRF", this);
-    ui->menu_open->addAction(action_hackrf);
-    connect(action_hackrf, SIGNAL(triggered()), this, SLOT(open_hackrf()));
-#endif
-#ifdef USE_MIRI
-    QAction * action_miri = new QAction("Miri SDR", this);
-    ui->menu_open->addAction(action_miri);
-    connect(action_miri, SIGNAL(triggered()), this, SLOT(open_miri()));
-#endif
-#ifdef USE_USRP
-    QAction * action_usrp = new QAction("USRP SDR", this);
-    ui->menu_open->addAction(action_usrp);
-    connect(action_usrp, SIGNAL(triggered()), this, SLOT(open_usrp()));
-#endif
-    QAction * action_raw = new QAction("RAW IQ file", this);
-    ui->menu_open->addAction(action_raw);
-    connect(action_raw, SIGNAL(triggered()), this, SLOT(open_raw()));
 
+#ifdef USE_AIRSPY
+    ui->action_airspy->setEnabled(true);
+    connect(ui->action_airspy, SIGNAL(triggered()), this, SLOT(open_airspy()));
+#endif
+
+#if defined (USE_PLUTOSDR) and !defined (WIN32)
+    ui->action_pluto->setEnabled(true);
+    connect(ui->action_pluto, SIGNAL(triggered()), this, SLOT(open_plutosdr()));
+#endif
+
+#ifdef USE_HACKRF
+    ui->action_hackrf->setEnabled(true);
+    connect(ui->action_hackrf, SIGNAL(triggered()), this, SLOT(open_hackrf()));
+#endif
+
+#ifdef USE_MIRI
+    ui->action_miri->setEnabled(true);
+    connect(ui->action_miri, SIGNAL(triggered()), this, SLOT(open_miri()));
+#endif
+
+#ifdef USE_USRP
+    ui->action_usrp->setEnabled(true);
+    connect(ui->action_usrp, SIGNAL(triggered()), this, SLOT(open_usrp()));
+#endif
+
+    connect(ui->action_rawiq, SIGNAL(triggered()), this, SLOT(open_raw()));
     connect(ui->action_exit, SIGNAL(triggered()), this, SLOT(close()));
 
     ui->tab_widget->setCurrentIndex(0);
@@ -146,17 +144,20 @@ void main_window::open_sdrplay()
 }
 #endif
 //---------------------------------------------------------------------------------------------------------------------------------
+#ifdef USE_AIRSPY
 void main_window::open_airspy()
 {
     open_dev<rx_airspy>();
 }
+#endif
 //------------------------------------------------------------------------------------------------
-#ifndef WIN32
+#if defined (USE_PLUTOSDR) and !defined (WIN32)
 void main_window::open_plutosdr()
 {
     open_dev<rx_plutosdr>();
 }
 #endif
+
 #ifdef USE_MIRI
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::open_miri()
