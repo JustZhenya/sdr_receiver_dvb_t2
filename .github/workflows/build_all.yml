@@ -1,0 +1,237 @@
+name: Build Binaries
+
+on:
+    push:
+        branches-ignore:
+        - nightly
+    pull_request:
+        branches-ignore:
+        - nightly
+
+env:
+    # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+    BUILD_TYPE: Release
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+    build_debian_bullseye:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+        
+        - name: Create Docker Image
+          run: cd $GITHUB_WORKSPACE/docker_builds/debian_bullseye && docker build . -t builder
+
+        - name: Run Container
+          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
+
+        - name: Recover Deb Archive
+          working-directory: ${{runner.workspace}}
+          run: docker cp build:/root/git_repo/package.deb ./
+
+        - name: Save Deb Archive
+          uses: actions/upload-artifact@v4
+          with:
+              name: debian_bullseye_amd64
+              path: ${{runner.workspace}}/package.deb
+
+    build_debian_bookworm:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+        
+        - name: Create Docker Image
+          run: cd $GITHUB_WORKSPACE/docker_builds/debian_bookworm && docker build . -t builder
+
+        - name: Run Container
+          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
+
+        - name: Recover Deb Archive
+          working-directory: ${{runner.workspace}}
+          run: docker cp build:/root/git_repo/package.deb ./
+
+        - name: Save Deb Archive
+          uses: actions/upload-artifact@v4
+          with:
+              name: debian_bookworm_amd64
+              path: ${{runner.workspace}}/package.deb
+    
+    build_debian_trixie:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+        
+        - name: Create Docker Image
+          run: cd $GITHUB_WORKSPACE/docker_builds/debian_trixie && docker build . -t builder
+
+        - name: Run Container
+          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
+
+        - name: Recover Deb Archive
+          working-directory: ${{runner.workspace}}
+          run: docker cp build:/root/git_repo/package.deb ./
+
+        - name: Save Deb Archive
+          uses: actions/upload-artifact@v4
+          with:
+              name: debian_trixie_amd64
+              path: ${{runner.workspace}}/package.deb
+
+    build_fedora_42:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+        
+        - name: Create Docker Image
+          run: cd $GITHUB_WORKSPACE/docker_builds/fedora_42 && docker build . -t builder
+
+        - name: Run Container
+          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
+
+        - name: Recover RPM Archive
+          working-directory: ${{runner.workspace}}
+          run: docker cp build:/root/rpmbuild/RPMS/x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm ./
+
+        - name: Save RPM Archive
+          uses: actions/upload-artifact@v4
+          with:
+              name: fedora_42_x86_64
+              path: ${{runner.workspace}}/sdrpp-1.2.1-${{github.run_number}}.x86_64.rpm
+
+    build_fedora_43:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+        
+        - name: Create Docker Image
+          run: cd $GITHUB_WORKSPACE/docker_builds/fedora_43 && docker build . -t builder
+
+        - name: Run Container
+          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
+
+        - name: Recover RPM Archive
+          working-directory: ${{runner.workspace}}
+          run: docker cp build:/root/rpmbuild/RPMS/x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm ./
+
+        - name: Save RPM Archive
+          uses: actions/upload-artifact@v4
+          with:
+              name: fedora_43_x86_64
+              path: ${{runner.workspace}}/sdrpp-1.2.1-${{github.run_number}}.x86_64.rpm
+
+    build_ubuntu_jammy:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+        
+        - name: Create Docker Image
+          run: cd $GITHUB_WORKSPACE/docker_builds/ubuntu_jammy && docker build . -t builder
+
+        - name: Run Container
+          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
+
+        - name: Recover Deb Archive
+          working-directory: ${{runner.workspace}}
+          run: docker cp build:/root/git_repo/package.deb ./
+
+        - name: Save Deb Archive
+          uses: actions/upload-artifact@v4
+          with:
+              name: ubuntu_jammy_amd64
+              path: ${{runner.workspace}}/package.deb
+
+    build_ubuntu_noble:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+        
+        - name: Create Docker Image
+          run: cd $GITHUB_WORKSPACE/docker_builds/ubuntu_noble && docker build . -t builder
+
+        - name: Run Container
+          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
+
+        - name: Recover Deb Archive
+          working-directory: ${{runner.workspace}}
+          run: docker cp build:/root/git_repo/package.deb ./
+
+        - name: Save Deb Archive
+          uses: actions/upload-artifact@v4
+          with:
+              name: ubuntu_noble_amd64
+              path: ${{runner.workspace}}/package.deb
+
+    build_ubuntu_questing:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+        
+        - name: Create Docker Image
+          run: cd $GITHUB_WORKSPACE/docker_builds/ubuntu_questing && docker build . -t builder
+
+        - name: Run Container
+          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
+
+        - name: Recover Deb Archive
+          working-directory: ${{runner.workspace}}
+          run: docker cp build:/root/git_repo/package.deb ./
+
+        - name: Save Deb Archive
+          uses: actions/upload-artifact@v4
+          with:
+              name: ubuntu_questing_amd64
+              path: ${{runner.workspace}}/package.deb
+
+    create_full_archive:
+        needs: [
+          'build_debian_bullseye',
+          'build_debian_bookworm',
+          'build_debian_trixie',
+          'build_fedora_42',
+          'build_fedora_43',
+          'build_ubuntu_jammy',
+          'build_ubuntu_noble',
+          'build_ubuntu_questing',
+        ]
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Download All Builds
+          uses: actions/download-artifact@v4
+
+        - name: Create Archive
+          run: >
+            mkdir sdr_receiver_dvb_t2 && 
+            mv debian_bullseye_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_debian_bullseye_amd64.deb && 
+            mv debian_bookworm_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_debian_bookworm_amd64.deb && 
+            mv debian_trixie_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_debian_trixie_amd64.deb && 
+            mv fedora_42_x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdrpp_fedora_42_x86_64.rpm && 
+            mv fedora_43_x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdrpp_fedora_43_x86_64.rpm && 
+            mv ubuntu_jammy_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_ubuntu_jammy_amd64.deb && 
+            mv ubuntu_noble_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_ubuntu_noble_amd64.deb && 
+            mv ubuntu_questing_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_ubuntu_questing_amd64.deb
+
+        - uses: actions/upload-artifact@v4
+          with:
+            name: sdr_receiver_dvb_t2
+            path: sdr_receiver_dvb_t2/
+
+    update_nightly_release:
+        needs: [create_full_archive]
+        runs-on: ubuntu-latest
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+
+        steps:
+        - name: Download All Builds
+          uses: actions/download-artifact@v4
+
+        - name: Update Nightly
+          run: gh release upload nightly sdr_receiver_dvb_t2/* -R ${{github.repository}} --clobber
