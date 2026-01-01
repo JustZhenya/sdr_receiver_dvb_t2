@@ -18,37 +18,8 @@
 #include <QMainWindow>
 
 #include "rx_interface.h"
-
-#ifdef USE_SDRPLAY
-#include "rx_sdrplay.h"
-#endif
-
-#ifdef USE_AIRSPY
-#include "rx_airspy.h"
-#endif
-
-#if defined (USE_PLUTOSDR) and !defined (WIN32)
-#include "rx_plutosdr.h"
-#endif
-
-#ifdef USE_HACKRF
-#include "rx_hackrf.h"
-#endif
-
-#ifdef USE_MIRI
-#include "rx_miri.h"
-#endif
-
-#ifdef USE_USRP
-#include "rx_usrp.h"
-#endif
-
-#include "rx_raw.h"
 #include "plot.h"
 #include "DVB_T2/dvbt2_demodulator.h"
-
-//Q_DECLARE_METATYPE(bb_de_header::id_out);
-Q_DECLARE_METATYPE(bb_de_header::plp_out_params);
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class main_window; }
@@ -126,7 +97,7 @@ private:
     Ui::main_window *ui;
 
     id_device_t id_device;
-    dvbt2_demodulator* dvbt2;
+    dvbt2_demodulator* dvbt2 = nullptr;
     QThread* thread = nullptr;
     rx_interface* ptr_dev = nullptr;
     bool enable_gain_updates{false};
@@ -135,21 +106,21 @@ private:
     int start_hackrf();
     void connect_info();
     void disconnect_info();
-    QButtonGroup* button_group_p2_symbol;
+    QButtonGroup* button_group_p2_symbol = nullptr;
     type_graph type;
-    plot* p1_spectrograph;
-    plot* p1_constelation;
-    plot* p2_spectrograph;
-    plot* p2_constelation;
-    plot* data_spectrograph;
-    plot* data_constelation;
-    plot* fc_spectrograph;
-    plot* fc_constelation;
-    plot* qam_constelation;
-    plot* p1_correlation_oscilloscope;
-    plot* p2_equalizer_oscilloscope;
-    plot* frequency_offset;
-    plot* ldpc_stats;
+    plot* p1_spectrograph = nullptr;
+    plot* p1_constelation = nullptr;
+    plot* p2_spectrograph = nullptr;
+    plot* p2_constelation = nullptr;
+    plot* data_spectrograph = nullptr;
+    plot* data_constelation = nullptr;
+    plot* fc_spectrograph = nullptr;
+    plot* fc_constelation = nullptr;
+    plot* qam_constelation = nullptr;
+    plot* p1_correlation_oscilloscope = nullptr;
+    plot* p2_equalizer_oscilloscope = nullptr;
+    plot* frequency_offset = nullptr;
+    plot* ldpc_stats = nullptr;
 
     void disconnect_signals();
     template<typename T> void open_dev();

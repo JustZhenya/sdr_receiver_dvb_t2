@@ -6,7 +6,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx")
 endif()
 
-find_package(Qt5 REQUIRED Core Widgets Gui Network)
+find_package(Qt6 REQUIRED Core Widgets Gui Network)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
@@ -47,8 +47,8 @@ set(SRCFILES
 
 add_executable(sdr_receiver_dvb_t2 ${SRCFILES})
 
-target_include_directories(sdr_receiver_dvb_t2 PRIVATE src/ Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Network)
-target_link_libraries(sdr_receiver_dvb_t2 PRIVATE Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Network)
+target_include_directories(sdr_receiver_dvb_t2 PRIVATE src/ Qt6::Core Qt6::Widgets Qt6::Gui Qt6::Network)
+target_link_libraries(sdr_receiver_dvb_t2 PRIVATE Qt6::Core Qt6::Widgets Qt6::Gui Qt6::Network)
 target_compile_features(sdr_receiver_dvb_t2 PRIVATE cxx_std_17)
 
 find_package(PkgConfig QUIET REQUIRED)
@@ -57,9 +57,9 @@ pkg_check_modules(FFTW3F REQUIRED IMPORTED_TARGET fftw3f)
 target_include_directories(sdr_receiver_dvb_t2 PRIVATE PkgConfig::FFTW3F)
 target_link_libraries(sdr_receiver_dvb_t2 PRIVATE PkgConfig::FFTW3F)
 
-pkg_check_modules(QCUSTOMPLOT-QT5 REQUIRED IMPORTED_TARGET qcustomplot-qt5)
-target_include_directories(sdr_receiver_dvb_t2 PRIVATE PkgConfig::QCUSTOMPLOT-QT5)
-target_link_libraries(sdr_receiver_dvb_t2 PRIVATE PkgConfig::QCUSTOMPLOT-QT5)
+pkg_check_modules(QCUSTOMPLOT-QT6 REQUIRED IMPORTED_TARGET qcustomplot-qt6)
+target_include_directories(sdr_receiver_dvb_t2 PRIVATE PkgConfig::QCUSTOMPLOT-QT6)
+target_link_libraries(sdr_receiver_dvb_t2 PRIVATE PkgConfig::QCUSTOMPLOT-QT6)
 
 if(USE_HACKRF)
     pkg_check_modules(LIBHACKRF REQUIRED IMPORTED_TARGET libhackrf)

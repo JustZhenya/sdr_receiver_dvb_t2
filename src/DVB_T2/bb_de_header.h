@@ -70,11 +70,11 @@ public:
         id_out out_type;
 
         // out_network
-        QScopedPointer<QUdpSocket> socket_ptr;
+        std::unique_ptr<QUdpSocket> socket_ptr;
 
         // out_file
-        QScopedPointer<QFile> file_ptr;
-        QScopedPointer<QDataStream> stream_ptr;
+        std::unique_ptr<QFile> file_ptr;
+        std::unique_ptr<QDataStream> stream_ptr;
     };
 
 signals:

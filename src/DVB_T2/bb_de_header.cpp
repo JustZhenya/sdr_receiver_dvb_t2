@@ -15,6 +15,7 @@
 #include "bb_de_header.h"
 
 #include <QMessageBox>
+#include <memory>
 #include <qmutex.h>
 #include <qscopedpointer.h>
 #include <qudpsocket.h>
@@ -529,8 +530,8 @@ void bb_de_header::set_out(std::map<int, plp_out_params> new_out_params)
     {
         if(params.second.out_type == id_out::out_file)
         {
-            QScopedPointer<QFile> new_file_ptr(new QFile(params.second.filename));
-            QScopedPointer<QDataStream> new_stream_ptr(new QDataStream());
+            std::unique_ptr<QFile> new_file_ptr(new QFile(params.second.filename));
+            std::unique_ptr<QDataStream> new_stream_ptr(new QDataStream());
 
             if(new_file_ptr->open(QIODevice::WriteOnly))
             {
@@ -548,7 +549,7 @@ void bb_de_header::set_out(std::map<int, plp_out_params> new_out_params)
         }
         else if(params.second.out_type == id_out::out_network)
         {
-            QScopedPointer<QUdpSocket> new_socket_ptr(new QUdpSocket());
+            std::unique_ptr<QUdpSocket> new_socket_ptr(new QUdpSocket());
 
             out_devices[params.first].out_type = id_out::out_network;
             out_devices[params.first].socket_ptr.swap(new_socket_ptr);

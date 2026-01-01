@@ -20,6 +20,32 @@
 #include <qmessagebox.h>
 #include <qtabwidget.h>
 
+#ifdef USE_SDRPLAY
+#include "rx_sdrplay.h"
+#endif
+
+#ifdef USE_AIRSPY
+#include "rx_airspy.h"
+#endif
+
+#if defined (USE_PLUTOSDR) and !defined (WIN32)
+#include "rx_plutosdr.h"
+#endif
+
+#ifdef USE_HACKRF
+#include "rx_hackrf.h"
+#endif
+
+#ifdef USE_MIRI
+#include "rx_miri.h"
+#endif
+
+#ifdef USE_USRP
+#include "rx_usrp.h"
+#endif
+
+#include "rx_raw.h"
+
 //------------------------------------------------------------------------------------------------
 main_window::main_window(QWidget *parent)
     : QMainWindow(parent)
