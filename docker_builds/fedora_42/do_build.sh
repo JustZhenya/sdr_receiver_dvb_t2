@@ -3,10 +3,8 @@ set -e
 cd /root
 
 # Install dependencies and tools
-# TODO missing: libairspyhf-dev libairspy-dev libad9361-dev libbladerf-dev liblimesuite-dev
-dnf install -y cmake gcc g++ git p7zip p7zip-plugins wget xxd libtool autoconf rpmdevtools \
-    fftw-devel glfw-devel volk-devel libzstd-devel libiio-devel libcorrect-devel \
-    rtaudio-devel hackrf-devel rtl-sdr-devel portaudio-devel codec2-devel spdlog-devel
+dnf install -y cmake gcc g++ wget p7zip p7zip-plugins rpmdevtools \
+    qt6-qtbase-devel qcustomplot-qt6-devel fftw-devel airspyone_host-devel hackrf-devel uhd-devel
 
 # Install SDRPlay libraries
 wget https://www.sdrplay.com/software/SDRplay_RSP_API-Linux-3.15.2.run
