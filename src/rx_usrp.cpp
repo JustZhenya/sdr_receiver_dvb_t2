@@ -51,25 +51,22 @@ int rx_usrp::get(std::string &_ser_no, std::string &_hw_ver)
   (void) _hw_ver;
   static std::vector<std::string> devices;
   static std::vector<unsigned char> hw_ver;
-  std::string label;
 
   devices.resize(0);
   hw_ver.resize(0);
   
   uhd::device_addr_t hint;
+  hint["type"] = "b200"; // only request b200 devices, not hackrf, not pluto
+
   for (const uhd::device_addr_t &dev : uhd::device::find(hint))
   {
-    std::string args = "uhd," + dev.to_string();
-
-    std::string type = dev.cast< std::string >("type", "usrp");
-    std::string name = dev.cast< std::string >("name", "");
-    std::string serial = dev.cast< std::string >("serial", "");
-    devices.push_back( name + " " +serial);
+    devices.push_back(dev["name"] + " " + dev["serial"]);
     hw_ver.push_back(0);
   }
 
-  if(devices.size() == 0)
+  if(devices.empty())
     return -1;
+
   _ser_no = devices[0];
   return 0;
 }
@@ -80,9 +77,10 @@ int rx_usrp::hw_init(uint32_t _rf_frequency, int _gain_db)
     (void) _rf_frequency;
     (void) _gain_db;
     int ret = 0;
-    sample_rate = 9000000.0f;
+    sample_rate = 10000000.0f;
     uhd::device_addr_t device_addr{"uhd,num_recv_frames=128"};
     _dev = uhd::usrp::multi_usrp::make(device_addr);
+    _dev->set_master_clock_rate(10000000.0);
     _dev->set_rx_rate(sample_rate, chan);
     _dev->set_rx_freq(uhd::tune_request_t(rf_frequency),chan);
 
