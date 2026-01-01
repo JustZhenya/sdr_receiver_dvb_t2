@@ -7,7 +7,7 @@ mkdir package/DEBIAN
 
 # Create package info
 echo Create package info
-echo Package: sdr_receiver_dvb_t2 >> package/DEBIAN/control
+echo Package: sdr-receiver-dvb-t2 >> package/DEBIAN/control
 echo Version: 0.1-$BUILD_NO >> package/DEBIAN/control
 echo Maintainer: Oleg Malyutin, vladisslav2011, just_zhenya >> package/DEBIAN/control
 echo Architecture: $2 >> package/DEBIAN/control
