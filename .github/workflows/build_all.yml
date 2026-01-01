@@ -14,28 +14,6 @@ env:
     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-    build_debian_bullseye:
-        runs-on: ubuntu-latest
-
-        steps:
-        - uses: actions/checkout@v4
-        
-        - name: Create Docker Image
-          run: cd $GITHUB_WORKSPACE/docker_builds/debian_bullseye && docker build . -t builder
-
-        - name: Run Container
-          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
-
-        - name: Recover Deb Archive
-          working-directory: ${{runner.workspace}}
-          run: docker cp build:/root/git_repo/package.deb ./
-
-        - name: Save Deb Archive
-          uses: actions/upload-artifact@v4
-          with:
-              name: debian_bullseye_amd64
-              path: ${{runner.workspace}}/package.deb
-
     build_debian_bookworm:
         runs-on: ubuntu-latest
 
@@ -124,28 +102,6 @@ jobs:
               name: fedora_43_x86_64
               path: ${{runner.workspace}}/sdrpp-1.2.1-${{github.run_number}}.x86_64.rpm
 
-    build_ubuntu_jammy:
-        runs-on: ubuntu-latest
-
-        steps:
-        - uses: actions/checkout@v4
-        
-        - name: Create Docker Image
-          run: cd $GITHUB_WORKSPACE/docker_builds/ubuntu_jammy && docker build . -t builder
-
-        - name: Run Container
-          run: docker run --name build -v $GITHUB_WORKSPACE:/root/git_repo --env BUILD_NO="$GITHUB_RUN_NUMBER" builder /root/do_build.sh
-
-        - name: Recover Deb Archive
-          working-directory: ${{runner.workspace}}
-          run: docker cp build:/root/git_repo/package.deb ./
-
-        - name: Save Deb Archive
-          uses: actions/upload-artifact@v4
-          with:
-              name: ubuntu_jammy_amd64
-              path: ${{runner.workspace}}/package.deb
-
     build_ubuntu_noble:
         runs-on: ubuntu-latest
 
@@ -192,12 +148,10 @@ jobs:
 
     create_full_archive:
         needs: [
-          'build_debian_bullseye',
           'build_debian_bookworm',
           'build_debian_trixie',
           'build_fedora_42',
           'build_fedora_43',
-          'build_ubuntu_jammy',
           'build_ubuntu_noble',
           'build_ubuntu_questing',
         ]
@@ -210,12 +164,10 @@ jobs:
         - name: Create Archive
           run: >
             mkdir sdr_receiver_dvb_t2 && 
-            mv debian_bullseye_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_debian_bullseye_amd64.deb && 
             mv debian_bookworm_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_debian_bookworm_amd64.deb && 
             mv debian_trixie_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_debian_trixie_amd64.deb && 
             mv fedora_42_x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdrpp_fedora_42_x86_64.rpm && 
             mv fedora_43_x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdrpp_fedora_43_x86_64.rpm && 
-            mv ubuntu_jammy_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_ubuntu_jammy_amd64.deb && 
             mv ubuntu_noble_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_ubuntu_noble_amd64.deb && 
             mv ubuntu_questing_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_ubuntu_questing_amd64.deb
 
