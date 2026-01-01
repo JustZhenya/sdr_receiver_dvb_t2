@@ -4,7 +4,7 @@ cd /root
 
 # Install dependencies and tools
 dnf install -y cmake gcc g++ wget p7zip p7zip-plugins rpmdevtools \
-    qt6-qtbase-devel qcustomplot-qt6-devel fftw-devel airspyone_host-devel hackrf-devel uhd-devel
+    qt6-qtbase-devel qcustomplot-qt6-devel fftw-devel airspyone_host-devel hackrf-devel uhd-devel boost-devel
 
 # Install SDRPlay libraries
 wget https://www.sdrplay.com/software/SDRplay_RSP_API-Linux-3.15.2.run
