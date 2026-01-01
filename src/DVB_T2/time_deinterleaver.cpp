@@ -27,7 +27,7 @@ time_deinterleaver::time_deinterleaver(QWaitCondition* _signal_in, QMutex *_mute
     signal_out = new QWaitCondition;
     qam = new llr_demapper(signal_out, mutex_out);
     qam->fifo.take(buffer_ua);
-    time_deint_cell = get_aligned(&buffer_ua[0], alignment);
+    time_deint_cell = get_aligned(buffer_ua.data(), alignment);
     thread = new QThread;
     thread->setObjectName("llr_demapper");
     qam->moveToThread(thread);
