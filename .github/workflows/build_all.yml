@@ -164,12 +164,12 @@ jobs:
         - name: Create Archive
           run: >
             mkdir sdr_receiver_dvb_t2 && 
-            mv debian_bookworm_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_debian_bookworm_amd64.deb && 
-            mv debian_trixie_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_debian_trixie_amd64.deb && 
-            mv fedora_42_x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdrpp_fedora_42_x86_64.rpm && 
-            mv fedora_43_x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdrpp_fedora_43_x86_64.rpm && 
-            mv ubuntu_noble_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_ubuntu_noble_amd64.deb && 
-            mv ubuntu_questing_amd64/package.deb sdr_receiver_dvb_t2/sdrpp_ubuntu_questing_amd64.deb
+            mv debian_bookworm_amd64/package.deb sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_debian_bookworm_amd64.deb && 
+            mv debian_trixie_amd64/package.deb sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_debian_trixie_amd64.deb && 
+            mv fedora_42_x86_64/sdr_receiver_dvb_t2-0.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_fedora_42_x86_64.rpm && 
+            mv fedora_43_x86_64/sdr_receiver_dvb_t2-0.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_fedora_43_x86_64.rpm && 
+            mv ubuntu_noble_amd64/package.deb sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_ubuntu_noble_amd64.deb && 
+            mv ubuntu_questing_amd64/package.deb sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_ubuntu_questing_amd64.deb
 
         - uses: actions/upload-artifact@v4
           with:
