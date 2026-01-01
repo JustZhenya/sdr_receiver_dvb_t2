@@ -4,7 +4,7 @@ cd /root
 
 # Install dependencies and tools
 apt-get update
-apt-get install -y build-essential cmake wget p7zip-full qt6-base-dev libqcustomplot-dev libfftw3-dev libairspy-dev libuhd-dev libhackrf-dev libusb-dev
+apt-get install -y build-essential cmake wget p7zip-full qt6-base-dev libqcustomplot-dev libfftw3-dev libairspy-dev libuhd-dev libhackrf-dev libusb-1.0-0-dev
 
 # Install SDRPlay libraries
 BUILD_ARCH=$(dpkg --print-architecture)
@@ -17,7 +17,7 @@ cp inc/* /usr/include/
 cd git_repo
 mkdir build
 cd build
-cmake ..
+cmake .. -DCMAKE_INSTALL_PREFIX:PATH=/usr
 make VERBOSE=1 -j`nproc`
 
 cd ..

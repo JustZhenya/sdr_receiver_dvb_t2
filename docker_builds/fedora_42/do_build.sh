@@ -16,7 +16,7 @@ cp inc/* /usr/include/
 cd git_repo
 mkdir build
 cd build
-cmake ..
+cmake .. -DCMAKE_INSTALL_PREFIX:PATH=/usr
 make VERBOSE=1 -j`nproc`
 
 sh ../make_rpm_package.sh
