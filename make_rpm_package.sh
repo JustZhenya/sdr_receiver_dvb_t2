@@ -21,6 +21,7 @@ cd /root/git_repo/build
 
 %files
 /usr/bin/sdr_receiver_dvb_t2
+/usr/share/applications/sdr_receiver_dvb_t2.desktop
 EOF
 
 # Create package

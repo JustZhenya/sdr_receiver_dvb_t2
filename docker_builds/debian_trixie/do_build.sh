@@ -4,7 +4,7 @@ cd /root
 
 # Install dependencies and tools
 apt-get update
-apt-get install -y build-essential cmake wget p7zip-full qt6-base-dev libqcustomplot-dev libfftw3-dev libairspy-dev libuhd-dev libhackrf-dev
+apt-get install -y build-essential cmake wget p7zip-full qt6-base-dev libqcustomplot-dev libfftw3-dev libairspy-dev libuhd-dev libhackrf-dev libusb-dev
 
 # Install SDRPlay libraries
 BUILD_ARCH=$(dpkg --print-architecture)

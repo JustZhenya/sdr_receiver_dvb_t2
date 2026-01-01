@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Terminal=false
+Exec=@CMAKE_INSTALL_PREFIX@/bin/sdr_receiver_dvb_t2
+Name=SDR DVB-T2 Receiver
+Comment=Software DVB-T2 receiver
+Categories=AudioVideo;Science;HamRadio;
