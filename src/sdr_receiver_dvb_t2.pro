@@ -72,7 +72,6 @@ SOURCES += \
     main.cpp \
     main_window.cpp \
     plot.cpp \
-    qcustomplot.cpp \
     rx_raw.cpp \
     rx_airspy.cpp
 
@@ -126,7 +125,6 @@ HEADERS += \
     rx_sdrplay.h\
     main_window.h \
     plot.h \
-    qcustomplot.h \
     aligned_ptr.h \
     rx_interface.h \
     rx_base.h \
@@ -157,6 +155,7 @@ LIBS += -lfftw3f
 LIBS += -lusb-1.0
 LIBS += -lssh
 LIBS += -lhackrf
+LIBS += -lqcustomplot-qt5
 equals(sdrplay,1): LIBS += -lmirsdrapi-rsp
 equals(sdrplay,1): QMAKE_CXXFLAGS += -DUSE_SDRPLAY
 equals(hackrf,1): LIBS += -lhackrf
