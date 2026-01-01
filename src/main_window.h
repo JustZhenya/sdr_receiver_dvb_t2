@@ -47,7 +47,8 @@
 #include "plot.h"
 #include "DVB_T2/dvbt2_demodulator.h"
 
-Q_DECLARE_METATYPE(bb_de_header::id_out);
+//Q_DECLARE_METATYPE(bb_de_header::id_out);
+Q_DECLARE_METATYPE(bb_de_header::plp_out_params);
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class main_window; }
@@ -66,8 +67,7 @@ protected:
 
 signals:
     void p2_show(int _id_show);
-    void set_out(bb_de_header::id_out _id_current_out, int _num_port_udp,
-                 QString _file_name, int _need_plp);
+    void set_out(std::map<int, bb_de_header::plp_out_params> new_out_params);
     void stop_device();
     void gain_manual(int gain);
 
@@ -117,12 +117,7 @@ private slots:
     void view_l1_postsignalling(QString _text);
     void view_l1_dynamic(QString _text, bool _force_update);
     void ts_stage(QString _info);
-    void on_push_button_ts_open_file_clicked();
     void on_push_button_ts_apply_clicked();
-    void on_combo_box_ts_plp_currentIndexChanged(const QString &arg1);
-    void on_radio_button_ts_net_toggled(bool checked);
-    void on_radio_button_ts_file_toggled(bool checked);
-    void on_line_edit_ts_udp_port_textChanged(const QString &arg1);
     void on_checkBox_biastee_toggled(bool checked);
 
     void on_check_box_agc_stateChanged(int arg1);

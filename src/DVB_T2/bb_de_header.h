@@ -22,7 +22,6 @@
 #include <QTextStream>
 #include <QDataStream>
 #include <QFile>
-#include <array>
 
 #include "dvbt2_definition.h"
 
@@ -49,9 +48,33 @@ public:
     explicit bb_de_header(QWaitCondition* _signal_in, QMutex* _mutex_in, QObject *parent = nullptr);
     ~bb_de_header();
 
-    enum id_out{
-        out_network = 0,
+    enum class id_out {
+        out_network,
         out_file,
+    };
+
+    struct plp_out_params
+    {
+        id_out out_type = id_out::out_network;
+
+        // out_network
+        QHostAddress udp_addr;
+        qint16 udp_port;
+
+        // out_file
+        QString filename;
+    };
+
+    struct plp_out_device
+    {
+        id_out out_type;
+
+        // out_network
+        QScopedPointer<QUdpSocket> socket_ptr;
+
+        // out_file
+        QScopedPointer<QFile> file_ptr;
+        QScopedPointer<QDataStream> stream_ptr;
     };
 
 signals:
@@ -60,18 +83,19 @@ signals:
 
 public slots:
     void execute(int _plp_id, l1_postsignalling _l1_post, int _len_in, uint8_t* _in);
-    void set_out(bb_de_header::id_out _id_current_out, int _num_port_udp, QString _file_name, int _need_plp);
+    void set_out(std::map<int, plp_out_params> new_out_params);
     void stop();
 
 private:
     QWaitCondition* signal_in;
     QMutex* mutex_in;
-    QMutex* mutex_out;
-    int plp_id = 0;
-    uint8_t  crc = 0;
+    
     uint8_t crc_table[256];
     void init_crc8_table();
-    uint8_t check_crc8_mode(uint8_t *_in, int _len_in);
+    static uint8_t check_crc8_mode(uint8_t *_in, int _len_in);
+
+    static constexpr int len = 53840 / 8 + TRANSPORT_PACKET_LENGTH * 2; //split tail ?
+    
     struct bb_header{
         int ts_gs;
         int sis_mis;
@@ -85,24 +109,24 @@ private:
         int sync;
         int syncd;
     };
-    int idx_packet = 0;
-    int idx_buffer = 0;
-    bool split = false;
-    uint8_t buffer[TRANSPORT_PACKET_LENGTH];
 
-    static constexpr int len{53840 / 8 + TRANSPORT_PACKET_LENGTH * 2}; //split tail ?
-    int need_plp = 0;
-    uint8_t* out;
-    int len_out = 0;
-    std::array<uint8_t, len> begin_out{};
-    std::array<char, len> buffer_out{};
-    QFile file{};
-    QDataStream stream{};
-    QUdpSocket* socket;
-    QHostAddress addr=QHostAddress("127.255.255.255");
-    int id_current_out = out_network;
-    QString file_name = "out_dvbt2.ts";
-    unsigned short num_port_udp = 7654;
+    struct plp_context
+    {
+        uint8_t crc = 0;
+        int idx_packet = 0;
+        int idx_buffer = 0;
+        bool split = false;
+        uint8_t buffer[TRANSPORT_PACKET_LENGTH];
+        uint8_t begin_out[len];
+        uint8_t* out = begin_out;
+        int len_out = 0;
+    };
+
+    std::map<int, plp_context> plp_contexts;
+
+    QMutex* mutex_out;
+    std::map<int, plp_out_params> out_params;
+    std::map<int, plp_out_device> out_devices;
 
     bool info_already_set = false;
     QString info = "";

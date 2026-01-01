@@ -13,8 +13,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "main_window.h"
+#include "DVB_T2/bb_de_header.h"
 #include "ui_main_window.h"
 #include <QAction>
+#include <qhostaddress.h>
+#include <qmessagebox.h>
+#include <qtabwidget.h>
 
 //------------------------------------------------------------------------------------------------
 main_window::main_window(QWidget *parent)
@@ -26,6 +30,12 @@ main_window::main_window(QWidget *parent)
     qRegisterMetaType<fec_frame>();
     qRegisterMetaType<idx_plp_simd_t>();
     qRegisterMetaType<bch_decoder::in_t>();
+
+    //qRegisterMetaType<bb_de_header::id_out>();
+    //qRegisterMetaType<bb_de_header::plp_out_params>();
+
+    qRegisterMetaType<std::map<int, bb_de_header::plp_out_params>>();
+
 #ifdef USE_SDRPLAY
     ui->action_sdrplay->setEnabled(true);
     connect(ui->action_sdrplay, SIGNAL(triggered()), this, SLOT(open_sdrplay()));
@@ -63,7 +73,6 @@ main_window::main_window(QWidget *parent)
     for(int i = 1; i < ui->tab_widget->count(); ++i) ui->tab_widget->setTabEnabled(i, false);
     ui->push_button_start->setEnabled(false);
     ui->push_button_stop->setEnabled(false);
-    ui->push_button_ts_open_file->setEnabled(false);
     ui->push_button_ts_apply->setEnabled(false);
 
     p1_spectrograph = new plot(ui->widget_fft_plot_p1, type_spectrograph, "Fast Fourier transform spectrum");
@@ -84,7 +93,7 @@ main_window::main_window(QWidget *parent)
     button_group_p2_symbol->addButton(ui->radio_button_l1presignaling, 0);
     button_group_p2_symbol->addButton(ui->radio_button_l1postsignaling, 1);
     button_group_p2_symbol->addButton(ui->radio_button_data, 2);
-    connect(button_group_p2_symbol, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked),
+    connect(button_group_p2_symbol, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::idClicked),
             this, &main_window::set_show_p2_symbol);
 //    connect(button_group_p2_symbol, &QButtonGroup::idClicked, this, &main_window::set_show_p2_symbol);
     std::vector<const char *> fir_names{};
@@ -270,7 +279,6 @@ void main_window::failed_dev()
     for(int i = 1; i < ui->tab_widget->count(); ++i) ui->tab_widget->setTabEnabled(i, false);
     ui->push_button_start->setEnabled(false);
     ui->push_button_stop->setEnabled(false);
-    ui->push_button_ts_open_file->setEnabled(false);
     ui->push_button_ts_apply->setEnabled(false);
     ui->label_name->setText("Name :");
     ui->label_ser_no->setText("Serial No :");
@@ -301,6 +309,7 @@ void main_window::on_push_button_start_clicked()
     ui->spinBoxRF->setEnabled(false);
     ui->check_box_agc->setEnabled(false);
     ui->push_button_stop->setEnabled(true);
+    ui->push_button_ts_apply->setEnabled(true);
     enable_gain_updates = true;
 }
 //------------------------------------------------------------------------------------------------
@@ -315,7 +324,6 @@ void main_window::connect_info()
             this, &main_window::signal_noise_ratio);
     connect(dvbt2->deinterleaver->qam->decoder->decoder->deheader, &bb_de_header::ts_stage,
             this, &main_window::ts_stage);
-    qRegisterMetaType<bb_de_header::id_out>();
     connect(this, &main_window::set_out,
             dvbt2->deinterleaver->qam->decoder->decoder->deheader, &bb_de_header::set_out);
 }
@@ -339,7 +347,6 @@ void main_window::on_push_button_stop_clicked()
     for(int i = 1; i < ui->tab_widget->count(); ++i) ui->tab_widget->setTabEnabled(i, false);
     ui->push_button_start->setEnabled(false);
     ui->push_button_stop->setEnabled(false);
-    ui->push_button_ts_open_file->setEnabled(false);
     ui->push_button_ts_apply->setEnabled(false);
     emit stop_device();
     if(thread->isRunning()) thread->wait();
@@ -501,8 +508,24 @@ void main_window::amount_plp(int _num_plp)
 {
     ui->combo_box_plp_id->clear();
     for(int i = 0; i < _num_plp; ++i) ui->combo_box_plp_id->addItem(QString::number(i));
-    ui->combo_box_ts_plp->clear();
-    for(int i = 0; i < _num_plp; ++i) ui->combo_box_ts_plp->addItem(QString::number(i));
+
+    ui->table_ts_out_params->clearContents();
+    for(int i = 0; i < _num_plp; ++i)
+    {
+        ui->table_ts_out_params->insertRow(i);
+
+        QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(i));
+        newItem1->setFlags(newItem1->flags() & ~Qt::ItemIsEditable);
+        ui->table_ts_out_params->setItem(i, 0, newItem1);
+
+        QTableWidgetItem *newItem2 = new QTableWidgetItem();
+        ui->table_ts_out_params->setItem(i, 1, newItem2);
+
+        QTableWidgetItem *newItem3 = new QTableWidgetItem(QString::number(7654 + i));
+        ui->table_ts_out_params->setItem(i, 2, newItem3);
+    }
+
+    on_push_button_ts_apply_clicked();
 }
 //------------------------------------------------------------------------------------------------
 void main_window::on_combo_box_plp_id_currentIndexChanged(int index)
@@ -558,60 +581,28 @@ void main_window::ts_stage(QString _info)
 //------------------------------------------------------------------------------------------------
 void main_window::on_push_button_ts_apply_clicked()
 {
-    bb_de_header::id_out id_current_out = bb_de_header::out_network;
-    int num_port_udp = 7654;
-    QString port = ui->line_edit_ts_udp_port->text();
-    if(port != "") num_port_udp = port.toInt();
-    else ui->line_edit_ts_udp_port->setText("7654");
+    std::map<int, bb_de_header::plp_out_params> new_plp_params;
 
-    if(ui->radio_button_ts_file->isChecked()) id_current_out = bb_de_header::out_file;
-    QString file_name = ui->line_edit_ts_file_name->text();
+    for(size_t i = 0; i < ui->table_ts_out_params->rowCount(); ++i)
+    {
+        bool ok1, ok2;
+        int plp_id = ui->table_ts_out_params->item(i, 0)->text().toInt(&ok1);
+        qint16 udp_port = ui->table_ts_out_params->item(i, 2)->text().toUShort(&ok2);
 
-    QString plp = ui->combo_box_ts_plp->currentText();
-    int need_plp = 0;
-    need_plp = plp.toInt();
+        if(!ok1 || !ok2)
+        {
+            QMessageBox::critical(this, "Error", "Port is specified incorrectly", QMessageBox::Ok, QMessageBox::Ok);
+            return;
+        }
 
-    emit set_out(id_current_out, num_port_udp, file_name, need_plp);
-
-    ui->push_button_ts_apply->setEnabled(false);
-}
-//------------------------------------------------------------------------------------------------
-void main_window::on_combo_box_ts_plp_currentIndexChanged(const QString &arg1)
-{
-    Q_UNUSED(arg1)
-    ui->push_button_ts_apply->setEnabled(true);
-}
-//-----------------------------------------------------------------------------------------------
-void main_window::on_radio_button_ts_net_toggled(bool checked)
-{
-    if(checked) {
-        ui->line_edit_ts_udp_port->setEnabled(true);
-        ui->push_button_ts_apply->setEnabled(true);
+        new_plp_params[plp_id] = {
+            bb_de_header::id_out::out_network,
+            QHostAddress("127.255.255.255"),
+            udp_port
+        };
     }
-    else {
-        ui->line_edit_ts_udp_port->setEnabled(false);
-    }
-}
-//------------------------------------------------------------------------------------------------
-void main_window::on_line_edit_ts_udp_port_textChanged(const QString &arg1)
-{
-    Q_UNUSED(arg1)
-    ui->push_button_ts_apply->setEnabled(true);
-}
-//------------------------------------------------------------------------------------------------
-void main_window::on_radio_button_ts_file_toggled(bool checked)
-{
-    if(checked) ui->push_button_ts_open_file->setEnabled(true);
-    else ui->push_button_ts_open_file->setEnabled(false);
-}
-//------------------------------------------------------------------------------------------------
-void main_window::on_push_button_ts_open_file_clicked()
-{
-    QString file_name = "";
-    file_name = QFileDialog::getSaveFileName(this);
-    ui->line_edit_ts_file_name->setText(file_name);
-    if(file_name != "") ui->push_button_ts_apply->setEnabled(true);
-    else ui->radio_button_ts_net->setChecked(false);
+
+    emit set_out(new_plp_params);
 }
 //------------------------------------------------------------------------------------------------
 void main_window::on_checkBox_biastee_toggled(bool checked)

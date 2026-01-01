@@ -15,6 +15,9 @@
 #include "bb_de_header.h"
 
 #include <QMessageBox>
+#include <qmutex.h>
+#include <qscopedpointer.h>
+#include <qudpsocket.h>
 
 //#include <QDebug>
 
@@ -27,22 +30,15 @@
 bb_de_header::bb_de_header(QWaitCondition *_signal_in, QMutex *_mutex_in, QObject *parent) :
     QObject(parent),
     signal_in(_signal_in),
-    mutex_in(_mutex_in)
+    mutex_in(_mutex_in),
+    mutex_out(new QMutex())
 {
     init_crc8_table();
-    out = &begin_out[0];
-
-    #if 0
-    stream.setVersion(QDataStream::Qt_5_15);
-    #endif
-
-    socket = new QUdpSocket(this);
 }
 //------------------------------------------------------------------------------------------
 bb_de_header::~bb_de_header()
 {
-    if(socket->isOpen()) socket->close();
-    if(file.isOpen()) file.close();
+    delete mutex_out;
 }
 //------------------------------------------------------------------------------------------
 void bb_de_header::init_crc8_table()
@@ -59,7 +55,7 @@ void bb_de_header::init_crc8_table()
     }
 }
 //------------------------------------------------------------------------------------------
-uint8_t  bb_de_header::check_crc8_mode(uint8_t *_in, int _len_in)
+uint8_t bb_de_header::check_crc8_mode(uint8_t *_in, int _len_in)
 {
     uint8_t crc = 0;
     uint8_t b;
@@ -139,10 +135,6 @@ error_lengh:
 
     if(!info_already_set) set_info(_plp_id, l1_post, mode, header);
 
-    if(need_plp != _plp_id) {
-        mutex_in->unlock();
-        return;
-    }
     if(!unpack(header.upl, 16, in, last))
         goto error_lengh;
     if(!unpack(header.dfl, 16, in, last))
@@ -161,80 +153,82 @@ error_lengh:
     }
     in += 8;
 
+    plp_context& ctx = plp_contexts[_plp_id];
+
     if (mode == INPUTMODE_NORMAL) {
-        if(split){
-            split = false;
-            if(len_out<len)
+        if(ctx.split){
+            ctx.split = false;
+            if(ctx.len_out<len)
             {
-                *out++ = buffer[0];
-                ++len_out;
+                *(ctx.out++) = ctx.buffer[0];
+                ++ctx.len_out;
             }
-            ptr_error_indicator = out;
-            for (int i = 1; (i < idx_buffer) && (len_out < len); ++i) {
-                *out++ = buffer[i];
-                ++len_out;
+            ptr_error_indicator = ctx.out;
+            for (int i = 1; (i < ctx.idx_buffer) && (ctx.len_out < len); ++i) {
+                *(ctx.out++) = ctx.buffer[i];
+                ++ctx.len_out;
             }
-            len_split = TRANSPORT_PACKET_LENGTH - idx_packet;
+            len_split = TRANSPORT_PACKET_LENGTH - ctx.idx_packet;
             int syncd_byte = header.syncd / 8;
             if(len_split == syncd_byte){
                 for (int i = 0; i < len_split; ++i) {
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    crc = crc_table[temp ^ crc];
-                    if(len_out<len)
+                    ctx.crc = crc_table[temp ^ ctx.crc];
+                    if(ctx.len_out<len)
                     {
-                        *out++ = temp;
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                 }
                 temp = 0;
                 unpack(temp, 8, in, last);
-                if(temp != crc){
+                if(temp != ctx.crc){
                     ++errors;
                     if(ptr_error_indicator != nullptr)
                         *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                 }
-                crc = 0;
+                ctx.crc = 0;
             }
             else if(len_split < syncd_byte){
                 for (int i = 0; i < syncd_byte; ++i) {
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    crc = crc_table[temp ^ crc];
-                    if(len_out<len)
+                    ctx.crc = crc_table[temp ^ ctx.crc];
+                    if(ctx.len_out<len)
                     {
-                        *out++ = temp;
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                 }
                 temp = 0;
                 unpack(temp, 8, in, last);
-                if(temp != crc){
+                if(temp != ctx.crc){
                     ++errors;
                     if(ptr_error_indicator != nullptr)
                         *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                 }
-                crc = 0;
+                ctx.crc = 0;
                 emit ts_stage(QString("Baseband header resynchronizing, N %1 < %2.").arg(len_split).arg(syncd_byte));
             }
             else{
                 for (int i = 0; i < syncd_byte; ++i) {
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    if(len_out<len)
+                    if(ctx.len_out<len)
                     {
-                        *out++ = temp;
-                        ++len_out;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
                     }
-                    ++idx_packet;
+                    ++ctx.idx_packet;
                 }
                 int dump = len_split - syncd_byte;
-                for (int i = 0; (i < dump) && (len_out < len); ++i) {
-                    *out++ = 0xF0;
-                    ++len_out;
-                    ++idx_packet;
+                for (int i = 0; (i < dump) && (ctx.len_out < len); ++i) {
+                    *(ctx.out++) = 0xF0;
+                    ++ctx.len_out;
+                    ++ctx.idx_packet;
                 }
                 ++errors;
                 if(ptr_error_indicator != nullptr)
@@ -253,88 +247,88 @@ error_lengh:
 //        }
         while (header.dfl > 0) {
             if (header.dfl < BIT_PACKET_LENGTH) {
-                split = true;
+                ctx.split = true;
                 len_split = header.dfl / 8;
-                idx_buffer = 0;
+                ctx.idx_buffer = 0;
                 for (int i = 0; i < len_split; ++i) {
-                    if(idx_packet >= TRANSPORT_PACKET_LENGTH) {
-                        idx_packet = 0;
+                    if(ctx.idx_packet >= TRANSPORT_PACKET_LENGTH) {
+                        ctx.idx_packet = 0;
                         temp = 0;
                         unpack(temp, 8, in, last);
-                        if(temp != crc){
+                        if(temp != ctx.crc){
                             ++errors;
                             if(ptr_error_indicator != nullptr)
                                 *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                         }
-                        crc = 0;
-                        buffer[idx_buffer++] = 0x47;//static_cast<unsigned char>(header.sync);
-                        ++idx_packet;
+                        ctx.crc = 0;
+                        ctx.buffer[ctx.idx_buffer++] = 0x47;//static_cast<unsigned char>(header.sync);
+                        ++ctx.idx_packet;
                     }
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    crc = crc_table[temp ^ crc];
-                    buffer[idx_buffer++] = temp;
-                    ++idx_packet;
+                    ctx.crc = crc_table[temp ^ ctx.crc];
+                    ctx.buffer[ctx.idx_buffer++] = temp;
+                    ++ctx.idx_packet;
                 }
                 header.dfl = 0;
             }
             else{
-                if(idx_packet >= TRANSPORT_PACKET_LENGTH){
-                    idx_packet = 0;
+                if(ctx.idx_packet >= TRANSPORT_PACKET_LENGTH){
+                    ctx.idx_packet = 0;
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    if(temp != crc){
+                    if(temp != ctx.crc){
                         ++errors;
                         if(ptr_error_indicator != nullptr)
                             *ptr_error_indicator |= TRANSPORT_ERROR_INDICATOR;
                     }
-                    crc = 0;
-                    if(len_out < len)
+                    ctx.crc = 0;
+                    if(ctx.len_out < len)
                     {
-                        *out++ = 0x47;//static_cast<unsigned char>(header.sync);
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = 0x47;//static_cast<unsigned char>(header.sync);
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
-                    ptr_error_indicator = out;
+                    ptr_error_indicator = ctx.out;
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    crc = crc_table[temp ^ crc];
-                    if(len_out < len)
+                    ctx.crc = crc_table[temp ^ ctx.crc];
+                    if(ctx.len_out < len)
                     {
-                        *out++ = temp;
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                     header.dfl -= 8;
                 }
-                else if(idx_packet == 0){
-                    if(len_out < len)
+                else if(ctx.idx_packet == 0){
+                    if(ctx.len_out < len)
                     {
-                        *out++ = 0x47;//static_cast<unsigned char>(header.sync);
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = 0x47;//static_cast<unsigned char>(header.sync);
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
-                    ptr_error_indicator = out;
+                    ptr_error_indicator = ctx.out;
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    crc = crc_table[temp ^ crc];
-                    if(len_out < len)
+                    ctx.crc = crc_table[temp ^ ctx.crc];
+                    if(ctx.len_out < len)
                     {
-                        *out++ = temp;
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                     header.dfl -= 8;
                 }
                 else{
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    crc = crc_table[temp ^ crc];
-                    if(len_out < len)
+                    ctx.crc = crc_table[temp ^ ctx.crc];
+                    if(ctx.len_out < len)
                     {
-                        *out++ = temp;
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                     header.dfl -= 8;
                 }
@@ -342,23 +336,23 @@ error_lengh:
         }
     }
     else {
-        if(split){
-            split = false;
-            for (int i = 0; (i < idx_buffer) && (len_out < len); ++i) {
-                *out++ = buffer[i];
-                ++len_out;
+        if(ctx.split){
+            ctx.split = false;
+            for (int i = 0; (i < ctx.idx_buffer) && (ctx.len_out < len); ++i) {
+                *(ctx.out++) = ctx.buffer[i];
+                ++ctx.len_out;
             }
-            len_split = TRANSPORT_PACKET_LENGTH - idx_packet;
+            len_split = TRANSPORT_PACKET_LENGTH - ctx.idx_packet;
             int syncd_byte = header.syncd / 8;
             if(len_split == syncd_byte) {
                 for (int i = 0; i < len_split; ++i) {
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    if(len_out < len)
+                    if(ctx.len_out < len)
                     {
-                        *out++ = temp;
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                 }
             }
@@ -366,11 +360,11 @@ error_lengh:
                 for (int i = 0; i < len_split; ++i) {
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    if(len_out < len)
+                    if(ctx.len_out < len)
                     {
-                        *out++ = temp;
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                 }
                 in += header.syncd - len_split * 8;
@@ -380,18 +374,18 @@ error_lengh:
                 for (int i = 0; i < syncd_byte; ++i) {
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    if(len_out < len)
+                    if(ctx.len_out < len)
                     {
-                        *out++ = temp;
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                 }
                 int dump = len_split - syncd_byte;
-                for (int i = 0; (i < dump) && (len_out < len); ++i) {
-                    *out++ = 0xF0;
-                    ++len_out;
-                    ++idx_packet;
+                for (int i = 0; (i < dump) && (ctx.len_out < len); ++i) {
+                    *(ctx.out++) = 0xF0;
+                    ++ctx.len_out;
+                    ++ctx.idx_packet;
                 }
                 emit ts_stage(QString("Baseband header resynchronizing, %1 > %2.").arg(len_split).arg(syncd_byte));
             }
@@ -403,58 +397,69 @@ error_lengh:
 
         while (header.dfl > 0) {
             if (header.dfl < BIT_PACKET_LENGTH) {
-                split = true;
+                ctx.split = true;
                 len_split = header.dfl / 8;
-                idx_buffer = 0;
+                ctx.idx_buffer = 0;
                 for (int i = 0; i < len_split; ++i) {
-                    if(idx_packet == TRANSPORT_PACKET_LENGTH) {
-                        idx_packet = 0;
-                        buffer[idx_buffer++] = 0x47;//static_cast<unsigned char>(header.sync);
-                        ++idx_packet;
+                    if(ctx.idx_packet == TRANSPORT_PACKET_LENGTH) {
+                        ctx.idx_packet = 0;
+                        ctx.buffer[ctx.idx_buffer++] = 0x47;//static_cast<unsigned char>(header.sync);
+                        ++ctx.idx_packet;
                     }
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    buffer[idx_buffer++] = temp;
-                    ++idx_packet;
+                    ctx.buffer[ctx.idx_buffer++] = temp;
+                    ++ctx.idx_packet;
                 }
                 header.dfl = 0;
             }
             else{
-                if(idx_packet >= TRANSPORT_PACKET_LENGTH || idx_packet == 0){
-                    idx_packet = 0;
-                    if(len_out < len)
+                if(ctx.idx_packet >= TRANSPORT_PACKET_LENGTH || ctx.idx_packet == 0){
+                    ctx.idx_packet = 0;
+                    if(ctx.len_out < len)
                     {
-                        *out++ = 0x47;//static_cast<unsigned char>(header.sync);
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = 0x47;//static_cast<unsigned char>(header.sync);
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                 }
                 else{
                     temp = 0;
                     unpack(temp, 8, in, last);
-                    if(len_out < len)
+                    if(ctx.len_out < len)
                     {
-                        *out++ = temp;
-                        ++len_out;
-                        ++idx_packet;
+                        *(ctx.out++) = temp;
+                        ++ctx.len_out;
+                        ++ctx.idx_packet;
                     }
                     header.dfl -= 8;
                 }
             }
         }
     }
-    out = &begin_out[0];
-    memcpy(&buffer_out[0], &out[0], sizeof(uint8_t) * static_cast<unsigned long>(len_out));
+    ctx.out = ctx.begin_out;
 
-    switch(id_current_out){
-    case out_network:
-        socket->writeDatagram(&buffer_out[0], len_out, addr, num_port_udp);// $ vlc udp://@:7654
-        break;
-    case out_file:
-        stream.writeRawData(&buffer_out[0], len_out);
-        break;
+    mutex_out->lock();
+    for(const auto& device: out_devices)
+    {
+        if(device.first != _plp_id)
+            continue;
+
+        if(device.second.out_type == id_out::out_file)
+        {
+            device.second.stream_ptr->writeRawData((char*) ctx.out, sizeof(uint8_t) * static_cast<unsigned long>(ctx.len_out));
+        }
+        else if(device.second.out_type == id_out::out_network)
+        {
+            const QHostAddress& addr = out_params[_plp_id].udp_addr;
+            const qint16 port = out_params[_plp_id].udp_port;
+
+            device.second.socket_ptr->writeDatagram((char*) ctx.out, sizeof(uint8_t) * static_cast<unsigned long>(ctx.len_out), addr, port);
+        }
     }
-    len_out = 0;
+    mutex_out->unlock();
+
+    ctx.len_out = 0;
 
     if(errors != 0) emit ts_stage("TS error.");
 
@@ -511,26 +516,50 @@ void bb_de_header::set_info(int _plp_id, l1_postsignalling &_l1_post,
     }
 }
 //_____________________________________________________________________________________________
-void bb_de_header::set_out(id_out _id_current_out, int _num_port_udp,
-                           QString _file_name, int _need_plp)
+void bb_de_header::set_out(std::map<int, plp_out_params> new_out_params)
 {
-    id_current_out = _id_current_out;
-    file_name = _file_name;
-    num_port_udp = static_cast<unsigned short>(_num_port_udp);
-    need_plp = _need_plp;
-    if(id_current_out == out_file){
-        if(file.isOpen()) file.close();
-        file.setFileName(file_name);
-        if(file.open(QIODevice::WriteOnly)) {
-            stream.setDevice(&file);
+    mutex_out->lock();
+
+    out_params = new_out_params;
+
+    // will close all files and sockets automatically
+    out_devices.clear();
+
+    for(const auto& params: out_params)
+    {
+        if(params.second.out_type == id_out::out_file)
+        {
+            QScopedPointer<QFile> new_file_ptr(new QFile(params.second.filename));
+            QScopedPointer<QDataStream> new_stream_ptr(new QDataStream());
+
+            if(new_file_ptr->open(QIODevice::WriteOnly))
+            {
+                new_stream_ptr->setDevice(new_file_ptr.get());
+            }
+            else
+            {
+                QMessageBox::information(nullptr, "Error", new_file_ptr->errorString());
+                continue;
+            }
+
+            out_devices[params.first].out_type = id_out::out_file;
+            out_devices[params.first].file_ptr.swap(new_file_ptr);
+            out_devices[params.first].stream_ptr.swap(new_stream_ptr);
         }
-        else{
-            QMessageBox::information(nullptr, "error", file.errorString());
+        else if(params.second.out_type == id_out::out_network)
+        {
+            QScopedPointer<QUdpSocket> new_socket_ptr(new QUdpSocket());
+
+            out_devices[params.first].out_type = id_out::out_network;
+            out_devices[params.first].socket_ptr.swap(new_socket_ptr);
+        }
+        else
+        {
+            // throw something
         }
     }
-    else{
-        if(file.isOpen()) file.close();
-    }
+
+    mutex_out->unlock();
 }
 //_____________________________________________________________________________________________
 void bb_de_header::stop()
