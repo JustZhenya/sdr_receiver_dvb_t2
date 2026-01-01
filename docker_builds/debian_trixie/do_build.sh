@@ -21,4 +21,4 @@ cmake .. -DCMAKE_INSTALL_PREFIX:PATH=/usr
 make VERBOSE=1 -j`nproc`
 
 cd ..
-sh make_debian_package.sh ./build $BUILD_ARCH 'libc6, libgcc-s1, libstdc++6, libqt6core6t64, libqt6widgets6t64, libqt6gui6t64, libqt6network6t64, libqcustomplot2.1-qt6, libfftw3-single3, libairspy0, libuhd4.8.0, libhackrf0' ''
+sh make_debian_package.sh ./build $BUILD_ARCH 'libc6, libgcc-s1, libstdc++6, libqt6core6t64, libqt6widgets6, libqt6gui6, libqt6network6, libqcustomplot2.1-qt6, libfftw3-single3, libairspy0, libuhd4.8.0, libhackrf0' ''
