@@ -72,13 +72,13 @@ jobs:
 
         - name: Recover RPM Archive
           working-directory: ${{runner.workspace}}
-          run: docker cp build:/root/rpmbuild/RPMS/x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm ./
+          run: docker cp build:/root/rpmbuild/RPMS/x86_64/sdr_receiver_dvb_t2-0.1-$GITHUB_RUN_NUMBER.x86_64.rpm ./package.rpm
 
         - name: Save RPM Archive
           uses: actions/upload-artifact@v4
           with:
               name: fedora_42_x86_64
-              path: ${{runner.workspace}}/sdrpp-1.2.1-${{github.run_number}}.x86_64.rpm
+              path: ${{runner.workspace}}/package.rpm
 
     build_fedora_43:
         runs-on: ubuntu-latest
@@ -94,13 +94,13 @@ jobs:
 
         - name: Recover RPM Archive
           working-directory: ${{runner.workspace}}
-          run: docker cp build:/root/rpmbuild/RPMS/x86_64/sdrpp-1.2.1-$GITHUB_RUN_NUMBER.x86_64.rpm ./
+          run: docker cp build:/root/rpmbuild/RPMS/x86_64/sdr_receiver_dvb_t2-0.1-$GITHUB_RUN_NUMBER.x86_64.rpm ./package.rpm
 
         - name: Save RPM Archive
           uses: actions/upload-artifact@v4
           with:
               name: fedora_43_x86_64
-              path: ${{runner.workspace}}/sdrpp-1.2.1-${{github.run_number}}.x86_64.rpm
+              path: ${{runner.workspace}}/package.rpm
 
     build_ubuntu_noble:
         runs-on: ubuntu-latest
@@ -166,8 +166,8 @@ jobs:
             mkdir sdr_receiver_dvb_t2 && 
             mv debian_bookworm_amd64/package.deb sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_debian_bookworm_amd64.deb && 
             mv debian_trixie_amd64/package.deb sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_debian_trixie_amd64.deb && 
-            mv fedora_42_x86_64/sdr_receiver_dvb_t2-0.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_fedora_42_x86_64.rpm && 
-            mv fedora_43_x86_64/sdr_receiver_dvb_t2-0.1-$GITHUB_RUN_NUMBER.x86_64.rpm sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_fedora_43_x86_64.rpm && 
+            mv fedora_42_x86_64/package.rpm sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_fedora_42_x86_64.rpm && 
+            mv fedora_43_x86_64/package.rpm sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_fedora_43_x86_64.rpm && 
             mv ubuntu_noble_amd64/package.deb sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_ubuntu_noble_amd64.deb && 
             mv ubuntu_questing_amd64/package.deb sdr_receiver_dvb_t2/sdr_receiver_dvb_t2_ubuntu_questing_amd64.deb
 
