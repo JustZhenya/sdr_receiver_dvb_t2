@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#include "sdrplay/mir_sdr.h"
+#include <sdrplay_api.h>
 #include "rx_base.h"
 
 class rx_sdrplay : virtual public rx_base<int16_t>
@@ -42,12 +42,14 @@ public:
     }
 
 private:
-    constexpr static int max_symbol = FFT_32K + FFT_32K / 4 + P1_LEN;
-    //const int max_blocks = max_symbol / 384 * 32;
-    constexpr static  int norm_blocks = max_symbol / 384 * 4;
-    std::vector<int16_t> i_buffer;
-    std::vector<int16_t> q_buffer;
     bool done = true;
+
+    bool is_sdrplay_initialized = false;
+
+    sdrplay_api_DeviceT selected_device;
+
+    static void stream_cb(short *xi, short *xq, sdrplay_api_StreamCbParamsT *params, unsigned int numSamples, unsigned int reset, void *cbContext);
+    static void event_cb(sdrplay_api_EventT eventId, sdrplay_api_TunerSelectT tuner, sdrplay_api_EventParamsT *params, void *cbContext);
 
     int hw_init(uint32_t _rf_frequency_hz, int _gain) override;
     int hw_set_frequency() override;

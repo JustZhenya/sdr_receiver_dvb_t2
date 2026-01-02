@@ -13,106 +13,180 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "rx_sdrplay.h"
-#include "rx_base.cpp"
+#include <algorithm>
+#include <sdrplay_api.h>
+
+static constexpr size_t samples_wanted = 128 * 1024 * 4;
+static std::deque<short> g_i_queue, g_q_queue;
+static std::mutex g_m;
+static std::condition_variable g_cv;
+
+void rx_sdrplay::stream_cb(short *xi, short *xq, sdrplay_api_StreamCbParamsT *params, unsigned int numSamples, unsigned int reset, void *cbContext)
+{
+    if(reset)
+        fprintf(stderr, "rx_sdrplay::stream_cb reset\n");
+
+    //fprintf(stderr, "rx_sdrplay::stream_cb %u\n", numSamples);
+
+    {
+        std::unique_lock lock(g_m);
+        g_i_queue.insert(g_i_queue.end(), xi, xi + numSamples);
+        g_q_queue.insert(g_q_queue.end(), xq, xq + numSamples);
+    }
+
+    g_cv.notify_one();
+}
+
+void rx_sdrplay::event_cb(sdrplay_api_EventT eventId, sdrplay_api_TunerSelectT tuner, sdrplay_api_EventParamsT *params, void *cbContext)
+{
+    rx_sdrplay* rx_sdrplay_ptr = (rx_sdrplay*) cbContext;
+
+    switch(eventId)
+    {
+        case sdrplay_api_GainChange:
+            printf("sdrplay_api_EventCb: %s, tuner=%s gRdB=%d lnaGRdB=%d systemGain=%.2f\n",
+                "sdrplay_api_GainChange", (tuner == sdrplay_api_Tuner_A)? "sdrplay_api_Tuner_A":
+                "sdrplay_api_Tuner_B", params->gainParams.gRdB, params->gainParams.lnaGRdB,
+                params->gainParams.currGain);
+            break;
+        case sdrplay_api_PowerOverloadChange:
+            printf("sdrplay_api_PowerOverloadChange: tuner=%s powerOverloadChangeType=%s\n",
+                (tuner == sdrplay_api_Tuner_A)? "sdrplay_api_Tuner_A": "sdrplay_api_Tuner_B",
+                (params->powerOverloadParams.powerOverloadChangeType ==
+                sdrplay_api_Overload_Detected)? "sdrplay_api_Overload_Detected":
+                "sdrplay_api_Overload_Corrected");
+            // Send update message to acknowledge power overload message received
+            sdrplay_api_Update(rx_sdrplay_ptr->selected_device.dev, tuner, sdrplay_api_Update_Ctrl_OverloadMsgAck, sdrplay_api_Update_Ext1_None);
+            break;
+        case sdrplay_api_RspDuoModeChange:
+            printf("sdrplay_api_EventCb: %s, tuner=%s modeChangeType=%s\n",
+                "sdrplay_api_RspDuoModeChange", (tuner == sdrplay_api_Tuner_A)?
+                "sdrplay_api_Tuner_A": "sdrplay_api_Tuner_B",
+                (params->rspDuoModeParams.modeChangeType == sdrplay_api_MasterInitialised)?
+                "sdrplay_api_MasterInitialised":
+                (params->rspDuoModeParams.modeChangeType == sdrplay_api_SlaveAttached)?
+                "sdrplay_api_SlaveAttached":
+                (params->rspDuoModeParams.modeChangeType == sdrplay_api_SlaveDetached)?
+                "sdrplay_api_SlaveDetached":
+                (params->rspDuoModeParams.modeChangeType == sdrplay_api_SlaveInitialised)?
+                "sdrplay_api_SlaveInitialised":
+                (params->rspDuoModeParams.modeChangeType == sdrplay_api_SlaveUninitialised)?
+                "sdrplay_api_SlaveUninitialised":
+                (params->rspDuoModeParams.modeChangeType == sdrplay_api_MasterDllDisappeared)?
+                "sdrplay_api_MasterDllDisappeared":
+                (params->rspDuoModeParams.modeChangeType == sdrplay_api_SlaveDllDisappeared)?
+                "sdrplay_api_SlaveDllDisappeared": "unknown type");
+            //if (params->rspDuoModeParams.modeChangeType == sdrplay_api_MasterInitialised)
+            //    masterInitialised = 1;
+            //if (params->rspDuoModeParams.modeChangeType == sdrplay_api_SlaveUninitialised)
+            //    slaveUninitialised = 1;
+            break;
+        case sdrplay_api_DeviceRemoved:
+            printf("sdrplay_api_EventCb: %s\n", "sdrplay_api_DeviceRemoved");
+            break;
+        default:
+            printf("sdrplay_api_EventCb: %d, unknown event\n", eventId);
+            break;
+    }
+}
 
 //-------------------------------------------------------------------------------------------
-rx_sdrplay::rx_sdrplay(QObject *parent) : QObject(parent)
+rx_sdrplay::rx_sdrplay(QObject *parent) : rx_base(parent)
 {
-    max_blocks = max_symbol / 384 * 32;
-    GAIN_MAX = 78;
+    fprintf(stderr, "rx_sdrplay::rx_sdrplay\n");
+
+    len_out_device = samples_wanted;
+    max_blocks = 256;
+
+    size_t max_len_out = len_out_device * max_blocks;
+    buffer_a.resize(max_len_out);
+    buffer_b.resize(max_len_out);
+
     GAIN_MIN = 0;
-    blocking_start = true;
+    GAIN_MAX = 42;
+    blocking_start = false;
     conv.init(1, 1.0f / (1 << 14), 0.04f, 0.02f);
+
+    sdrplay_api_Open();
 }
 //-------------------------------------------------------------------------------------------
 rx_sdrplay::~rx_sdrplay()
 {
+    fprintf(stderr, "rx_sdrplay::~rx_sdrplay\n");
+    sdrplay_api_Close();
 }
 //-------------------------------------------------------------------------------------------
 std::string rx_sdrplay::error (int err)
 {
-    switch (err) {
-       case mir_sdr_Success:
-          return "Success";
-       case mir_sdr_Fail:
-          return "Fail";
-       case mir_sdr_InvalidParam:
-          return "Invalid parameter";
-       case mir_sdr_OutOfRange:
-          return "Out of range";
-       case mir_sdr_GainUpdateError:
-          return "Gain update error";
-       case mir_sdr_RfUpdateError:
-          return "Rf update error";
-       case mir_sdr_FsUpdateError:
-          return "Fs update error";
-       case mir_sdr_HwError:
-          return "Hardware error";
-       case mir_sdr_AliasingError:
-          return "Aliasing error";
-       case mir_sdr_AlreadyInitialised:
-          return "Already initialised";
-       case mir_sdr_NotInitialised:
-          return "Not initialised";
-       case mir_sdr_NotEnabled:
-          return "Not enabled";
-       case mir_sdr_HwVerError:
-          return "Hardware Version error";
-       case mir_sdr_OutOfMemError:
-          return "Out of memory error";
-       case mir_sdr_HwRemoved:
-          return "Hardware removed";
-       default:
-          return "Unknown error";
-    }
+    return (std::string) sdrplay_api_GetErrorString((sdrplay_api_ErrT) err);
 }
 //-------------------------------------------------------------------------------------------
-mir_sdr_ErrT rx_sdrplay::get(char* &_ser_no, unsigned char &_hw_ver)
+int rx_sdrplay::get(std::string& _ser_no, std::string& _hw_ver)
 {
-    mir_sdr_ErrT err;
-//    mir_sdr_DebugEnable(1);
+    fprintf(stderr, "rx_sdrplay::get\n");
 
-    mir_sdr_DeviceT devices[4];
+    sdrplay_api_ErrT err;
+
+    sdrplay_api_DeviceT devices[4];
     unsigned int numDevs;
-    err = mir_sdr_GetDevices(&devices[0], &numDevs, 4);
-
-    if(err != 0) return err;
+    err = sdrplay_api_GetDevices(&devices[0], &numDevs, 4);
+    if(err != sdrplay_api_Success) return err;
 
     _ser_no = devices[0].SerNo;
     _hw_ver = devices[0].hwVer;
-    err = mir_sdr_SetDeviceIdx(0);
+    devices[0].tuner = sdrplay_api_Tuner_A;
+    err = sdrplay_api_SelectDevice(&devices[0]);
+    if(err != sdrplay_api_Success) return err;
+
+    selected_device = devices[0];
+
+    //sdrplay_api_UnlockDeviceApi();
+    //sdrplay_api_DebugEnable(selected_device.dev, sdrplay_api_DbgLvl_Message);
 
     return err;
 }
 //-------------------------------------------------------------------------------------------
-int rx_sdrplay::hw_init(uint32_t _rf_frequence, int _gain_db)
+int rx_sdrplay::hw_init(uint32_t rf_frequence, int gain_db)
 {
-    mir_sdr_ErrT err;
+    fprintf(stderr, "rx_sdrplay::hw_init\n");
 
-    mir_sdr_Uninit();
-    err = mir_sdr_DCoffsetIQimbalanceControl(0, 0);
+    sample_rate = 10000000.0f; // max for 10bit (10000000.0f for 8bit)
 
-    if(err != 0) return err;
+    sdrplay_api_DeviceParamsT* params;
+    sdrplay_api_ErrT err = sdrplay_api_GetDeviceParams(selected_device.dev, &params);
+    if(err != sdrplay_api_Success) return err;
 
-    sample_rate = 9200000.0f; // max for 10bit (10000000.0f for 8bit)
-    double sample_rate_mhz = static_cast<double>(sample_rate) / 1.0e+6;
-    double rf_chanel_mhz = static_cast<double>(rf_frequency) / 1.0e+6;
-    err = mir_sdr_Init(gain_db, sample_rate_mhz, rf_chanel_mhz,
-                                 mir_sdr_BW_8_000, mir_sdr_IF_Zero, &len_out_device);
+    params->rxChannelA->tunerParams.gain.LNAstate = 2;
+    params->rxChannelA->tunerParams.gain.gRdB = std::clamp(GAIN_MAX - gain, GAIN_MIN, GAIN_MAX);
+    params->rxChannelA->tunerParams.rfFreq.rfHz = static_cast<double>(rf_frequency);
+    params->rxChannelA->tunerParams.bwType = sdrplay_api_BW_8_000;
+    params->rxChannelA->tunerParams.ifType = sdrplay_api_IF_Zero;
+    params->devParams->fsFreq.fsHz = sample_rate;
+    params->rxChannelA->ctrlParams.dcOffset.DCenable = false;
+    params->rxChannelA->ctrlParams.dcOffset.IQenable = false;
+    params->rxChannelA->ctrlParams.agc.enable = sdrplay_api_AGC_DISABLE;
 
-    if(err != 0) return err;
-
-    max_len_out = len_out_device * max_blocks;
-    i_buffer.resize(len_out_device);
-    q_buffer.resize(len_out_device);
-
-    return err;
+    return 0;
 }
 
 //-------------------------------------------------------------------------------------------
 int rx_sdrplay::hw_set_frequency()
 {
-    return mir_sdr_SetRf(rf_frequency, 1, 0);
+    fprintf(stderr, "rx_sdrplay::hw_set_frequency %u\n", rf_frequency);
+
+    sdrplay_api_ErrT err;
+    sdrplay_api_DeviceParamsT* params;
+    err = sdrplay_api_GetDeviceParams(selected_device.dev, &params);
+    if(err != sdrplay_api_Success) return err;
+
+    params->rxChannelA->tunerParams.rfFreq.rfHz = static_cast<double>(rf_frequency);
+    if(is_sdrplay_initialized)
+    {
+        err = sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_Frf, sdrplay_api_Update_Ext1_None);
+        return err;
+    }
+    
+    return 0;
 }
 //-------------------------------------------------------------------------------------------
 void rx_sdrplay::on_frequency_changed()
@@ -121,42 +195,71 @@ void rx_sdrplay::on_frequency_changed()
 //-------------------------------------------------------------------------------------------
 int rx_sdrplay::hw_set_gain()
 {
-    return mir_sdr_SetGr(GAIN_MAX-gain, 1, 0);
+    fprintf(stderr, "rx_sdrplay::hw_set_gain %d\n", gain);
+
+    sdrplay_api_ErrT err;
+    sdrplay_api_DeviceParamsT* params;
+    err = sdrplay_api_GetDeviceParams(selected_device.dev, &params);
+    if(err != sdrplay_api_Success) return err;
+
+    params->rxChannelA->tunerParams.gain.gRdB = std::clamp(GAIN_MAX-gain, GAIN_MIN, GAIN_MAX);
+    if(is_sdrplay_initialized)
+    {
+        err = sdrplay_api_Update(selected_device.dev, selected_device.tuner, sdrplay_api_Update_Tuner_Gr, sdrplay_api_Update_Ext1_None);
+        return err;
+    }
+
+    return 0;
 }
 //-------------------------------------------------------------------------------------------
 void rx_sdrplay::on_gain_changed()
 {
 }
 //-------------------------------------------------------------------------------------------
-int rx_sdrplay::rx_start()
+int rx_sdrplay::hw_start()
 {
-    unsigned int first_sample_num;
-    mir_sdr_ErrT err = mir_sdr_Success;
-    int gr_changed = 0;
-    int rf_changed = 0;
-    int fs_changed = 0;
-    float level_detect=std::numeric_limits<float>::max();
+    fprintf(stderr, "rx_sdrplay::hw_start\n");
 
-    while(done && (err == mir_sdr_Success)) {
+    sdrplay_api_CallbackFnsT callbacks = {
+        .StreamACbFn = stream_cb,
+        .StreamBCbFn = stream_cb,
+        .EventCbFn = event_cb
+    };
 
-        for(int n = 0; n < blocks; ++n) {
+    sdrplay_api_ErrT err = sdrplay_api_Init(selected_device.dev, &callbacks, this);
+    is_sdrplay_initialized = true;
 
-            err = mir_sdr_ReadPacket(&i_buffer[0], &q_buffer[0], &first_sample_num,
-                                     &gr_changed, &rf_changed, &fs_changed);
-            if(err != 0) {
-                emit status(err);
-            }
-            conv.execute(0,len_out_device, &i_buffer, &q_buffer, ptr_buffer, level_detect, signal);
-            rx_base::rx_execute(len_out_device, level_detect);
+    std::vector<short> tmp_i(samples_wanted), tmp_q(samples_wanted);
+
+    while(done)
+    {
+        {
+            std::unique_lock lock(g_m);
+            g_cv.wait(lock, [] { return g_i_queue.size() > samples_wanted && g_q_queue.size() > samples_wanted; });
+
+            std::copy(g_i_queue.begin(), g_i_queue.begin() + samples_wanted, tmp_i.data());
+            g_i_queue.erase(g_i_queue.begin(), g_i_queue.begin() + samples_wanted);
+
+            std::copy(g_q_queue.begin(), g_q_queue.begin() + samples_wanted, tmp_q.data());
+            g_q_queue.erase(g_q_queue.begin(), g_q_queue.begin() + samples_wanted);
         }
+
+        float level_detect = std::numeric_limits<float>::max();
+        conv.execute(0, samples_wanted, tmp_i.data(), tmp_q.data(), ptr_buffer, level_detect, signal);
+        rx_base::rx_execute(samples_wanted, level_detect);
     }
-    mir_sdr_Uninit();
-    mir_sdr_ReleaseDeviceIdx();
-    return (err == mir_sdr_Success) ? 0 : -1;
+
+    return err;
 }
 //-------------------------------------------------------------------------------------------
-void rx_sdrplay::rx_stop()
+void rx_sdrplay::hw_stop()
 {
+    fprintf(stderr, "rx_sdrplay::hw_stop\n");
+
+    sdrplay_api_Uninit(selected_device.dev);
+    sdrplay_api_ReleaseDevice(&selected_device);
+
+    is_sdrplay_initialized = false;
     done = false;
 }
 //-------------------------------------------------------------------------------------------

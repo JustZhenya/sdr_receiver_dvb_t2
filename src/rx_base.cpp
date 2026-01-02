@@ -169,11 +169,11 @@ template<typename T>void rx_base<T>::rx_execute(int nsamples, float level_detect
         update_gain_frequency();
 
         if(swap_buffer) {
-            emit execute(len_buffer, &buffer_a[0], level_detect, &signal);
+            emit execute(len_buffer, buffer_a.data(), level_detect, &signal);
             ptr_buffer = buffer_b.data();
         }
         else {
-            emit execute(len_buffer, &buffer_b[0], level_detect, &signal);
+            emit execute(len_buffer, buffer_b.data(), level_detect, &signal);
             ptr_buffer = buffer_a.data();
         }
         swap_buffer = !swap_buffer;

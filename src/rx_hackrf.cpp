@@ -221,7 +221,7 @@ int rx_hackrf::callback(hackrf_transfer* transfer)
 void rx_hackrf::rx_execute(void *in_ptr, int nsamples)
 {
     int8_t * ptr = (int8_t*)in_ptr;
-    float level_detect=std::numeric_limits<float>::max();
+    float level_detect = std::numeric_limits<float>::max();
     conv.execute(0,nsamples / 2, &ptr[0], &ptr[1], ptr_buffer, level_detect,signal);
     rx_base::rx_execute(nsamples / 2, level_detect);
 }

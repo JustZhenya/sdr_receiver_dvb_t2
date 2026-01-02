@@ -4,12 +4,12 @@
 
 This is a Software Defined Radio(SDR) project implementing a DVB-T2 receiver.
 
-The project was created using the Qt5 framework.
+The project was created using the Qt6 framework.
 To build the project, you need to install
 the library FFTW3: http://www.fftw.org
 
 Supported devices:
-1. SdrPlay (need to install API/HW driver – V2.*(but not V3.*) from https://www.sdrplay.com) 
+1. SdrPlay (need to install API/HW driver – v3.x from https://www.sdrplay.com) 
     configure with qmake sdrplay=1 to enable SdrPlay support
 2. AirSpy (need to install libusb-1.0 from https://libusb.info)
 3. PlutoSDR (Only Linux and firmware 0.31. The program makes a temporary kernel patch for plutosdr-fw 0.31)
@@ -40,7 +40,7 @@ OS: Linux Mint 20 Ulyana 64-bit. Windows 10 22H2
 Processor: Intel© Core™ i5-8600 CPU @ 3.10GHz × 6
 
 
-To view the video signal, a VLC player v2.x (not v.3x) with 
+To view the video signal, a VLC player with 
 udp://@:7654 parameters was used (URL)
 
 ffplay/mplayer/mpv/smplayer may be used too:
@@ -48,10 +48,7 @@ ffplay udp://@:7654?reuse=1
 
 reuse=1 makes it possible to have multiple player instances playing different PIDs at the same time
 
-
-
 Used in the project Qt C++ widget QCustomPlot
-(necessary files are included in the project):
 https://www.qcustomplot.com/
 
 The LDPC block is a port of the code in:
