@@ -771,13 +771,6 @@
            <string>Output settings :</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_14">
-           <item row="3" column="0" alignment="Qt::AlignmentFlag::AlignRight">
-            <widget class="QPushButton" name="push_button_ts_apply">
-             <property name="text">
-              <string>Apply</string>
-             </property>
-            </widget>
-           </item>
            <item row="2" column="0">
             <widget class="QTableWidget" name="table_ts_out_params">
              <property name="gridStyle">
@@ -804,6 +797,13 @@
                <string>UDP Port / Filename</string>
               </property>
              </column>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QPushButton" name="push_button_ts_apply">
+             <property name="text">
+              <string>Apply</string>
+             </property>
             </widget>
            </item>
           </layout>
